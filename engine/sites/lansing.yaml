@@ -95,6 +95,7 @@ capex:
   pit_usd_per_mwh: {value: 1000.0, source: "assumption - verify"}
 
 policy:
+  carbon_price_usd_per_t: {value: 190.0, range: [51.0, 340.0], source: "US EPA social cost of carbon 2023 (2% discount); assumption - verify"}
   tax_abatement_offset_usd_per_yr: {value: 1500000.0, source: "assumption - verify"}
 
 parties:

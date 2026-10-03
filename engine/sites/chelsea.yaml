@@ -1,4 +1,6 @@
 # SITE A: CHELSEA (recommended)
+# Delivery uses existing, commercially available equipment only; HeatOS picks
+# the most cost- and carbon-efficient option per building.
 # Values tagged "assumption - verify" are placeholders to be confirmed.
 site:
   id: chelsea
@@ -37,6 +39,7 @@ loop:
   direct_link_max_m: {value: 100.0, source: "challenge spec: direct HX link under ~100 m"}
   direct_use_margin_c: {value: 5.0, source: "approach temperature; assumption - verify"}
   sells_cooling: true
+  cooling_cop: {value: 6.0, source: "building heat pump in cooling mode; assumption - verify"}
 
 heat_pumps:
   eta: {value: 0.6, range: [0.5, 0.8], source: "Carnot fraction; challenge spec"}
@@ -107,6 +110,7 @@ capex:
   tank_usd_per_mwh: {value: 15000.0, source: "assumption - verify"}
 
 policy:
+  carbon_price_usd_per_t: {value: 190.0, range: [51.0, 340.0], source: "US EPA social cost of carbon 2023 (2% discount); assumption - verify"}
   ll97_fine_usd_per_t: {value: 268.0, source: "Local Law 97 penalty - verify"}
   con_ed_regulated_return: {value: 0.095, source: "assumption - verify (UTEN Act rate base)"}
   con_ed_recovery_years: {value: 25.0, source: "assumption - verify"}

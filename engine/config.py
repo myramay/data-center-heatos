@@ -97,6 +97,7 @@ class Loop(_Section):
     direct_link_max_m: Param
     direct_use_margin_c: Param
     sells_cooling: bool
+    cooling_cop: Param | None = None
 
 
 class HeatPumps(_Section):

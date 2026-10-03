@@ -10,7 +10,7 @@ import pytest
 from engine import contracts, providers
 from engine.config import load_site
 from engine.contracts import Building, DemandForecast, JevOpinion, SimState
-from engine.mocks import heuristic_plan
+from engine.recommend import quick_plan
 from engine.verdict import verdict
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -145,7 +145,7 @@ def test_band_validation_rejects_bad_forecasts():
 
 def test_confidence_shape_and_stress_dip():
     bs = providers.get_buildings("chelsea")
-    plan = heuristic_plan("chelsea", bs)
+    plan = quick_plan("chelsea", bs)
     normal = providers.get_confidence("chelsea", plan, _state("chelsea"), 100)
     vortex = providers.get_confidence("chelsea", plan, _state("chelsea", weather="polar_vortex"), 100)
     assert normal.n_futures == 100 and normal.horizon_hours == 48
@@ -157,14 +157,14 @@ def test_confidence_shape_and_stress_dip():
 
 
 def test_confidence_is_deterministic():
-    plan = heuristic_plan("lansing", providers.get_buildings("lansing"))
+    plan = quick_plan("lansing", providers.get_buildings("lansing"))
     a = providers.get_confidence("lansing", plan, _state("lansing"), 50)
     b = providers.get_confidence("lansing", plan, _state("lansing"), 50)
     assert a == b
 
 
 def test_heuristic_plan_respects_capacity():
-    plan = heuristic_plan("chelsea", providers.get_buildings("chelsea"))
+    plan = quick_plan("chelsea", providers.get_buildings("chelsea"))
     assert 5 <= len(plan.connected_ids()) < 40
     assert set(plan.guaranteed_ids()) == {"CH-14", "CH-17"}
 
