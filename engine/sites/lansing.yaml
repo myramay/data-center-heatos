@@ -93,6 +93,7 @@ capex:
   pipe_usd_per_m: {value: 2500.0, source: "insulated warm loop, challenge spec placeholder"}
   direct_use_station_usd_per_kw: {value: 120.0, source: "assumption - verify"}
   pit_usd_per_mwh: {value: 1000.0, source: "assumption - verify"}
+  export_station_usd: {value: 2000000.0, source: "TeraWulf heat export station; assumption - verify"}
 
 policy:
   carbon_price_usd_per_t: {value: 190.0, range: [51.0, 340.0], source: "US EPA social cost of carbon 2023 (2% discount); assumption - verify"}

@@ -105,7 +105,10 @@ capex:
   steam_hp_usd_per_kw: {value: 1200.0, source: "challenge spec placeholder"}
   direct_link_usd: {value: 150000.0, source: "challenge spec placeholder"}
   pipe_usd_per_m: {value: 1500.0, source: "ambient loop, challenge spec placeholder"}
-  transfer_station_usd_per_m2: {value: 145.0, source: "FPCJ anchor $300-400k / 26,000 sq ft"}
+  transfer_station_anchor_usd: {value: 350000.0, range: [300000.0, 400000.0], source: "FPCJ anchor: $300-400k transfer station for a 26,000 sq ft building"}
+  transfer_station_ref_m2: {value: 2415.0, source: "26,000 sq ft"}
+  transfer_station_scale_exp: {value: 0.6, source: "economies of scale (six-tenths rule); assumption - verify"}
+  dc_heat_exchanger_usd: {value: 500000.0, source: "heat exchanger on the data center cooling loop; assumption - verify"}
   borehole_usd_per_mwh: {value: 1200.0, source: "assumption - verify"}
   tank_usd_per_mwh: {value: 15000.0, source: "assumption - verify"}
 

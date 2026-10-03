@@ -76,6 +76,7 @@ class Network:
     from_dc: np.ndarray         # (B,) bool: direct link to the data center (not the loop)
     dist_km: np.ndarray
     guaranteed: np.ndarray      # (B,) bool
+    priority: np.ndarray        # (B,) building indices in serving order when heat is short
     steam_hp: np.ndarray        # (B,) bool
     dhw_share: np.ndarray
     backup_eff: np.ndarray
@@ -129,6 +130,8 @@ def build_network(cfg: SiteConfig, buildings: list[Building], plan: Plan,
         kind=np.array(kind, int), hot_c=np.array(hot, float), from_dc=np.array(from_dc, bool),
         dist_km=np.array([b.street_distance_m / 1000 for b in bs]),
         guaranteed=np.array([i.guaranteed for i in items], bool),
+        priority=np.array(sorted(range(len(bs)), key=lambda k: (not items[k].guaranteed, -bs[k].equity_score,
+                                                               bs[k].street_distance_m)), int),
         steam_hp=np.array([i.option == "steam_hp" for i in items], bool),
         dhw_share=np.array([shares.get(b.use_type, 0.2) for b in bs]),
         backup_eff=np.array([(cfg.backup_efficiency.get(b.heating_system) or cfg.backup_efficiency["unknown"]).value for b in bs]),
@@ -146,6 +149,34 @@ def build_network(cfg: SiteConfig, buildings: list[Building], plan: Plan,
     )
 
 
+# ===================================================================== pipe routes
+
+@dataclass(frozen=True)
+class PipeEdge:
+    a: str          # "DC" or building id
+    b: str
+    length_m: float
+
+
+def pipe_tree(site: str, buildings: list[Building]) -> list[PipeEdge]:
+    """Minimum spanning tree from the data center (origin) to the connected
+    buildings. Chelsea routes follow the street grid (Manhattan metric);
+    Lansing roads get a 5% detour factor. Used for pipe capex and the 3D scene."""
+    from scipy.sparse.csgraph import breadth_first_order, minimum_spanning_tree
+
+    if not buildings:
+        return []
+    names = ["DC"] + [b.id for b in buildings]
+    xy = np.array([[0.0, 0.0]] + [[b.x_m, b.y_m] for b in buildings])
+    diff = np.abs(xy[:, None, :] - xy[None, :, :])
+    dist = diff.sum(-1) if site == "chelsea" else np.hypot(diff[..., 0], diff[..., 1]) * 1.05
+    tree = minimum_spanning_tree(np.maximum(dist, 1e-3)).toarray()
+    tree = np.maximum(tree, tree.T)
+    order, parent = breadth_first_order(tree, 0, directed=False, return_predecessors=True)
+    return [PipeEdge(a=names[parent[i]], b=names[i], length_m=round(float(tree[parent[i], i]), 1))
+            for i in order[1:]]
+
+
 # ===================================================================== hourly inputs and derived physics
 
 @dataclass
@@ -160,6 +191,7 @@ class HourlyInputs:
     supply_temp_c: np.ndarray      # (H,)
     elec_usd_per_mwh: np.ndarray   # (H,)
     fuel_price_mult: np.ndarray    # (H,)
+    flex_available: np.ndarray | None = None   # (H,) 0..1, e.g. 0 when flexible load is switched off
 
     @property
     def hours(self) -> int:
@@ -175,8 +207,8 @@ class Derived:
     loss_frac: np.ndarray          # (H, B) share of sent heat lost in pipes
     cooling_in_kw: np.ndarray      # (H, B) heat rejected into the loop by cooling customers
     cooling_elec_kw: np.ndarray    # (H, B)
-    # per-hour aggregates used by dispatch: [guaranteed non-steam, other non-steam, guaranteed steam, other steam]
-    send_groups: np.ndarray        # (H, 4)
+    send_kw: np.ndarray            # (H, B) loop heat each building needs sent
+    send_groups: np.ndarray        # (H, 2) [non-steam buildings, steam heat pump buildings]
     cooling_total_kw: np.ndarray   # (H,)
 
 
@@ -186,7 +218,8 @@ def derive(net: Network, inp: HourlyInputs, eta: float | None = None) -> Derived
     lo, hi = cfg.loop.supply_temp_c.low, cfg.loop.supply_temp_c.high
     loop_t = np.clip(inp.supply_temp_c - 3.0, lo, hi)                        # 3 K heat exchanger approach
     cold = np.where(net.from_dc[None, :], inp.supply_temp_c[:, None], loop_t[:, None])
-    eta_b = np.where(net.steam_hp, cfg.heat_pumps.steam_hp_eta.value, eta)
+    steam_eta = cfg.heat_pumps.steam_hp_eta.value * eta / cfg.heat_pumps.eta.value
+    eta_b = np.where(net.steam_hp, steam_eta, eta)
     c = cop(eta_b[None, :], net.hot_c[None, :], cold)
 
     direct = net.kind == KIND_DIRECT
@@ -210,11 +243,10 @@ def derive(net: Network, inp: HourlyInputs, eta: float | None = None) -> Derived
         cooling_in = cooling_elec = np.zeros_like(inp.demand_kw)
 
     s = inp.demand_kw * send
-    g, st = net.guaranteed, net.steam_hp
-    groups = np.stack([s[:, g & ~st].sum(1), s[:, ~g & ~st].sum(1),
-                       s[:, g & st].sum(1), s[:, ~g & st].sum(1)], axis=1)
+    st = net.steam_hp
+    groups = np.stack([s[:, ~st].sum(1), s[:, st].sum(1)], axis=1)
     return Derived(loop_temp_c=loop_t, cop=c, elec_per_kw=elec, send_per_kw=send, loss_frac=loss,
-                   cooling_in_kw=cooling_in, cooling_elec_kw=cooling_elec, send_groups=groups,
+                   cooling_in_kw=cooling_in, cooling_elec_kw=cooling_elec, send_kw=s, send_groups=groups,
                    cooling_total_kw=cooling_in.sum(1))
 
 
@@ -241,27 +273,25 @@ class HourDispatch:
     storage_loss_kw: list[float]
     soc_kwh: list[float]               # end of hour
     served_send_kw: float
-    frac_guaranteed: float
-    frac_other: float
+    shortfall_kw: float
     steam_hp_on: bool
     shift_kw: float
     flex_bank_kwh: float
 
 
 def dispatch_hour(net: Network, send_groups, cooling_total_kw: float, supply_kw: float,
-                  soc_kwh: list[float], flex_bank_kwh: float, d: Decision) -> HourDispatch:
-    g_ns, o_ns, g_s, o_s = (float(x) for x in send_groups)
-    send_g = g_ns + (g_s if d.steam_hp_on else 0.0)
-    send_o = o_ns + (o_s if d.steam_hp_on else 0.0)
-    send_req = send_g + send_o
+                  soc_kwh: list[float], flex_bank_kwh: float, d: Decision,
+                  flex_kw: float | None = None) -> HourDispatch:
+    send_req = float(send_groups[0]) + (float(send_groups[1]) if d.steam_hp_on else 0.0)
 
     # compute follows heat: bank holds deferred compute (heat-equivalent kWh)
+    flex = net.flex_kw if flex_kw is None else flex_kw
     shift = 0.0
-    if net.flex_kw > 0:
+    if flex > 0:
         if d.shift_kw > 0:
-            shift = min(d.shift_kw, net.flex_kw, flex_bank_kwh, max(net.dc_cap_kw - supply_kw, 0.0))
+            shift = min(d.shift_kw, flex, flex_bank_kwh, max(net.dc_cap_kw - supply_kw, 0.0))
         elif d.shift_kw < 0:
-            shift = -min(-d.shift_kw, net.flex_kw, supply_kw, max(net.flex_kw * 24 - flex_bank_kwh, 0.0))
+            shift = -min(-d.shift_kw, flex, supply_kw, max(net.flex_kw * 24 - flex_bank_kwh, 0.0))
     supply = supply_kw + shift
     cool_avail = cooling_total_kw * (1.0 - min(max(d.curtail_cooling_frac, 0.0), 1.0))
 
@@ -289,9 +319,6 @@ def dispatch_hour(net: Network, send_groups, cooling_total_kw: float, supply_kw:
     dc_used = supply - min(leftover, supply)
     cool_used = cool_avail - max(leftover - supply, 0.0)
 
-    frac_g = min(1.0, served / send_g) if send_g > 0 else 1.0
-    frac_o = min(1.0, (served - frac_g * send_g) / send_o) if send_o > 0 else 1.0
-
     new_soc, losses = [], []
     for u, s0, c, x in zip(net.storages, soc_kwh, ch, dis):
         mid = s0 + c - x
@@ -302,7 +329,7 @@ def dispatch_hour(net: Network, send_groups, cooling_total_kw: float, supply_kw:
     return HourDispatch(
         supply_kw=supply, dc_used_kw=dc_used, dc_fallback_kw=supply - dc_used, cooling_in_kw=cool_used,
         storage_in_kw=ch, storage_out_kw=dis, storage_loss_kw=losses, soc_kwh=new_soc,
-        served_send_kw=served, frac_guaranteed=frac_g, frac_other=max(frac_o, 0.0),
+        served_send_kw=served, shortfall_kw=send_req - served,
         steam_hp_on=d.steam_hp_on, shift_kw=shift, flex_bank_kwh=flex_bank_kwh - shift)
 
 
@@ -324,11 +351,24 @@ class Flows:
     extra: dict = field(default_factory=dict)
 
 
+def served_fractions(net: Network, send_kw: np.ndarray, served_kw, steam_on) -> np.ndarray:
+    """Share of each building's demand met by the network when heat is short:
+    buildings are filled whole, in priority order (guarantees first, then equity),
+    so a shortfall moves the fewest buildings onto backup."""
+    off = net.steam_hp[None, :] & ~np.asarray(steam_on, bool)[:, None]
+    send = np.where(off, 0.0, send_kw)[:, net.priority]
+    before = np.cumsum(send, axis=1) - send
+    frac_ord = np.clip((np.asarray(served_kw, float)[:, None] - before) / np.where(send > 0, send, 1.0), 0.0, 1.0)
+    frac_ord = np.where(send > 0, frac_ord, 1.0)
+    frac = np.empty_like(frac_ord)
+    frac[:, net.priority] = frac_ord
+    return np.where(off, 0.0, frac)
+
+
 def building_flows(net: Network, inp: HourlyInputs, der: Derived, sl: slice,
-                   frac_g, frac_o, steam_on, dc_used, cooling_in, storage_in, storage_out) -> Flows:
+                   served, steam_on, dc_used, cooling_in, storage_in, storage_out) -> Flows:
     need = inp.demand_kw[sl]
-    frac = np.where(net.guaranteed[None, :], np.asarray(frac_g)[:, None], np.asarray(frac_o)[:, None])
-    frac = np.where(net.steam_hp[None, :] & ~np.asarray(steam_on, bool)[:, None], 0.0, frac)
+    frac = served_fractions(net, der.send_kw[sl], served, steam_on)
     delivered = need * frac
     backup = need - delivered
     sent = need * der.send_per_kw[sl] * frac

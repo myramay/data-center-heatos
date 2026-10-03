@@ -33,7 +33,7 @@ class RulesPolicy:
         net, der = sim.net, sim.der
         steam_on = True                            # naive: always run; MPC decides on price + carbon
         g = der.send_groups[h]
-        need = g[0] + g[1] + ((g[2] + g[3]) if steam_on else 0.0)
+        need = g[0] + (g[1] if steam_on else 0.0)
         net_surplus = sim.inp.supply_kw[h] + der.cooling_total_kw[h] - need
 
         flows, shift = [], 0.0

@@ -14,7 +14,8 @@ ambient loop, recommended) and **Lansing** (Lake Hawkeye, warm loop).
 
 - [x] Step 1: interface contracts, mock ML providers, site configs
 - [x] Step 2: physics, rules autopilot, simulator (a full year in about 0.1 s; energy balance checked every hour)
-- [ ] Steps 3-10: scenarios, ledger, impact, API, front end, recommendation, MPC, report
+- [x] Step 3: stress tests + live narration, who-pays ledger, guarantees + "Everyone wins?" deal search, impact, site scoring (4.00 vs 3.35, Chelsea wins ~97%)
+- [ ] Steps 4-10: API, front end, recommendation, MPC, Lansing polish, report
 
 ## Run
 
@@ -36,6 +37,12 @@ engine/physics.py     COPs, pipe losses, storage, pumping, hourly energy balance
 engine/autopilot.py   dispatch policies (rules now, MPC in step 7)
 engine/sim.py         orchestrator: plan -> hour-by-hour autopilot + physics -> results / frames
 engine/recommend.py   plan builder (capacity-aware placeholder until step 6)
+engine/scenarios.py   stress tests (edit inputs from "now") + event narrator
+engine/ledger.py      hourly money flows, capex by party, NPV / payback, Sankey data
+engine/guarantees.py  guarantee premiums (E + CVaR95 margin), "Everyone wins?" lever search
+engine/futures.py     engine FutureSimulator: one sampled future -> physics + ledger
+engine/impact.py      CO2 / water / ERF / ERE ranges + HDR regenerative scorecard
+engine/site_scoring.py  Deliverable 1 weighted criteria + Dirichlet robustness
 ml/README.md          integration guide for the ML team
 ```
 

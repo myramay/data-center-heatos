@@ -171,6 +171,7 @@ class SimState(_Contract):
     active_scenarios: list[str] = []
     weather_scenario: WeatherScenario = "typical"
     supply_scenario: SupplyScenario = "base"
+    run_id: str | None = Field(default=None, description="live run; futures branch from its inputs")
 
 
 # ---------------------------------------------------------------- (d) ConfidenceResult
@@ -187,6 +188,8 @@ class ConfidenceResult(_Contract):
     guarantee_prices: dict[str, float] = Field(
         description="building_id -> USD premium for the evaluated horizon "
                     "(expected refunds + CVaR95 risk margin)")
+    p_guarantee_kept: dict[str, float] = Field(
+        default_factory=dict, description="building_id -> P(no missed hour over the horizon)")
     top_uncertainty_drivers: list[UncertaintyDriver]
     n_futures: int = Field(ge=1)
     horizon_hours: int = Field(ge=1)

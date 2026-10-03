@@ -25,14 +25,12 @@ from scipy.signal import lfilter
 from engine.config import load_site
 from engine.contracts import (
     Building, ConfidenceResult, DemandForecast, FutureInputs, FutureOutcome, HeatingSystem,
-    JevOpinion, ModelCard, Plan, PlanItem, SiteId, SimState, SupplyForecast, SupplyScenario,
+    JevOpinion, ModelCard, Plan, SiteId, SimState, SupplyForecast, SupplyScenario,
     UncertaintyDriver, UseType, WeatherScenario, WeatherSeries,
 )
 
 if TYPE_CHECKING:
-    from engine.providers import (
-        BuildingProvider, DemandProvider, FutureSimulator, SupplyProvider, WeatherProvider,
-    )
+    from engine.providers import BuildingProvider, FutureSimulator, WeatherProvider
 
 BASE_EPOCH_HOUR = 394_464          # 2015-01-01T00:00Z in hours since 1970
 NOISE_SPAN_HOURS = 30 * 8766       # noise tables cover 2015-2044
@@ -84,17 +82,6 @@ def _ramp(n: int, length: int, edge: int = 6) -> np.ndarray:
     """0..1 weight that is 1 for the first `length` hours, with soft edges."""
     h = np.arange(n, dtype=float)
     return np.clip(h / edge, 0, 1) * np.clip((length - h) / edge, 0, 1)
-
-
-def _carnot_cop(eta: float | np.ndarray, t_hot_c, t_cold_c, cap: float = 8.0):
-    th = np.asarray(t_hot_c, dtype=float) + 273.15
-    tc = np.asarray(t_cold_c, dtype=float) + 273.15
-    lift = np.maximum(th - tc, 1.0)
-    return np.clip(eta * th / lift, 1.0, cap)
-
-
-def _crf(rate: float, years: float) -> float:
-    return rate / (1 - (1 + rate) ** -years)
 
 
 # ===================================================================== weather
@@ -479,224 +466,6 @@ class MockSupplyProvider:
             is_mock=True)
 
 
-# ===================================================================== quick simulator
-
-@dataclass
-class _Prepared:
-    ids: list[str]
-    demand_kw: np.ndarray          # (B, H)
-    supply_kw: np.ndarray          # (H,)
-    kind: np.ndarray               # (B,) 0 direct, 1 heat pump, 2 steam heat pump, 3 booster
-    t_hot_c: np.ndarray
-    t_cold_c: np.ndarray
-    dhw_share: np.ndarray
-    pipe_loss: np.ndarray
-    current_cost: np.ndarray       # $/MWh
-    fuel_t_per_kwh_heat: np.ndarray  # displaced fuel CO2 per kWh delivered
-    price_frac: np.ndarray
-    party: list[str]
-    guaranteed: np.ndarray         # bool (B,)
-    capex_annual_offtaker: np.ndarray   # $/yr, (B,)
-    capex_annual_network: float
-    window_share: np.ndarray       # (B,) window demand / annual demand
-    network_window_share: float
-
-
-class QuickBalanceSimulator:
-    """Aggregate hourly heat balance used by the mock confidence engine.
-
-    Placeholder until engine.sim exists (build step 2) and engine.ledger
-    (step 3); both will implement the same FutureSimulator interface.
-    """
-
-    def __init__(self, buildings: "BuildingProvider", demand: "DemandProvider", supply: "SupplyProvider"):
-        self.buildings = buildings
-        self.demand = demand
-        self.supply = supply
-        self._cache: dict[tuple, _Prepared] = {}
-
-    def _prepare(self, plan: Plan, state: SimState) -> _Prepared:
-        key = (plan.model_dump_json(), state.site, state.time, state.horizon_hours,
-               state.weather_scenario, state.supply_scenario)
-        if key in self._cache:
-            return self._cache[key]
-        cfg = load_site(state.site)
-        by_id = {b.id: b for b in self.buildings.get_buildings(state.site)}
-        items = [i for i in plan.items if i.connect]
-        ids = [i.building_id for i in items]
-        H = state.horizon_hours
-        fc = self.demand.get_demand_forecast(state.site, ids, state.time, H, state.weather_scenario)
-        D = np.array([f.p50 for f in fc]) if fc else np.zeros((0, H))
-        S = np.asarray(self.supply.get_supply_forecast(state.site, state.time, H, state.supply_scenario).p50)
-
-        loop_t = cfg.loop.supply_temp_c.value
-        dc_t = (cfg.data_center.supply_temp_c_min.value + cfg.data_center.supply_temp_c_max.value) / 2
-        margin = cfg.loop.direct_use_margin_c.value
-        ambient = cfg.loop.type == "ambient_two_way"
-        loss_scale = (loop_t - cfg.loop.ambient_loss_ref_c) / cfg.loop.ambient_loss_span_c if ambient else 1.0
-        per_km = cfg.loop.pipe_loss_per_km.value
-        crf_bldg = _crf(cfg.finance.discount_rate.value, cfg.finance.horizon_years)
-        capex = {k: v.value for k, v in cfg.capex.items()}
-
-        kind, t_hot, t_cold, dhw, loss, cost, frac, party, guar, cap_b, co2 = ([] for _ in range(11))
-        pipe_m = 0.0
-        for it in items:
-            b = by_id[it.building_id]
-            p = cfg.party_by_use_type.get(b.use_type, cfg.parties[-1].id)
-            terms = cfg.party(p).terms
-            kw = it.design_capacity_kw or b.annual_heat_mwh * 1000 / 8760 * 2.5
-            if it.option == "direct_link":
-                direct = b.required_supply_temp_c <= dc_t - margin
-                kind.append(0 if direct else 1)
-                t_cold.append(dc_t)
-                loss.append(0.0)
-                c = capex.get("direct_link_usd", 0) + (0 if direct else kw * capex.get("heat_pump_usd_per_kw", 0))
-            else:
-                k = {"loop_hp": 1, "steam_hp": 2, "direct_use": 0, "booster": 3}[it.option]
-                kind.append(k)
-                t_cold.append(loop_t)
-                loss.append(per_km * b.street_distance_m / 1000 * loss_scale)
-                pipe_m += b.street_distance_m
-                c = kw * {1: capex.get("heat_pump_usd_per_kw", 0), 2: capex.get("steam_hp_usd_per_kw", 0),
-                          0: capex.get("direct_use_station_usd_per_kw", 0),
-                          3: capex.get("booster_usd_per_kw", 0) * DHW_SHARE[b.use_type]}[k]
-            if p == "public_housing":
-                c = 0.0          # NYSERDA grant covers building-side capex
-            t_hot.append(cfg.heat_pumps.steam_hp_t_hot_c.value if it.option == "steam_hp"
-                         else max(b.required_supply_temp_c, cfg.heat_pumps.booster_t_hot_c.value if it.option == "booster" else 0))
-            dhw.append(DHW_SHARE[b.use_type])
-            cost.append(b.current_heat_cost_usd_per_mwh)
-            fuel_t = cfg.emissions.fuels_t_per_mwh.get(b.heating_system)
-            eff = cfg.backup_efficiency.get(b.heating_system, cfg.backup_efficiency["unknown"]).value
-            co2.append((fuel_t.value if fuel_t else 0.0) / eff / 1000)
-            frac.append(terms["heat_price_fraction"].value if "heat_price_fraction" in terms else 0.85)
-            party.append(p)
-            guar.append(it.guaranteed)
-            cap_b.append(c * crf_bldg)
-
-        storage_capex = sum(s.capacity_mwh.value * capex.get(f"{'borehole' if s.type == 'borehole' else 'tank' if s.type == 'hot_water_tank' else 'pit'}_usd_per_mwh", 0)
-                            for s in cfg.storage)
-        network_capex = pipe_m * capex.get("pipe_usd_per_m", 0) + storage_capex
-        recovery = cfg.policy["con_ed_recovery_years"].value if "con_ed_recovery_years" in cfg.policy else 25.0
-        annual = np.array([by_id[i].annual_heat_mwh * 1000 for i in ids])
-        window = D.sum(axis=1)
-        prep = _Prepared(
-            ids=ids, demand_kw=D, supply_kw=S, kind=np.array(kind, dtype=int),
-            t_hot_c=np.array(t_hot, float), t_cold_c=np.array(t_cold, float), dhw_share=np.array(dhw),
-            pipe_loss=np.array(loss), current_cost=np.array(cost), fuel_t_per_kwh_heat=np.array(co2), price_frac=np.array(frac),
-            party=party, guaranteed=np.array(guar, bool), capex_annual_offtaker=np.array(cap_b),
-            capex_annual_network=network_capex * _crf(cfg.finance.discount_rate.value, recovery),
-            window_share=np.divide(window, annual, out=np.zeros_like(window), where=annual > 0),
-            network_window_share=float(window.sum() / annual.sum()) if annual.sum() else 0.0)
-        if len(self._cache) > 16:
-            self._cache.clear()
-        self._cache[key] = prep
-        return prep
-
-    def simulate_futures(self, plan: Plan, state: SimState, futures: Sequence[FutureInputs]) -> list[FutureOutcome]:
-        """Vectorized over futures; loops over hours (storage is stateful)."""
-        cfg = load_site(state.site)
-        P = self._prepare(plan, state)
-        N, (B, H) = len(futures), P.demand_kw.shape
-        eta = np.array([f.cop_eta for f in futures])[:, None]
-        dm = np.array([f.demand_mult for f in futures])[:, None]
-        sm = np.array([f.supply_mult for f in futures])
-        em = np.array([f.electricity_price_mult for f in futures])
-        fm = np.array([f.fuel_price_mult for f in futures])[:, None]
-        bldg_mult = np.stack([np.random.default_rng(f.seed).normal(1.0, 0.05, B) for f in futures]) if B else np.ones((N, 0))
-
-        steam_scale = cfg.heat_pumps.steam_hp_eta.value / cfg.heat_pumps.eta.value
-        eta_b = np.where(P.kind == 2, eta * steam_scale, eta)                       # (N, B)
-        cop = _carnot_cop(eta_b, P.t_hot_c, P.t_cold_c)
-        loop_frac = np.where(P.kind == 0, 1.0, 1 - 1 / cop)
-        elec_per_heat = np.where(P.kind == 0, 0.0, 1 / cop)
-        boost = P.kind == 3        # booster: only the hot-water share goes through the heat pump
-        loop_frac = np.where(boost, 1 - P.dhw_share / cop, loop_frac)
-        elec_per_heat = np.where(boost, P.dhw_share / cop, elec_per_heat)
-        draw_per_heat = loop_frac * (1 + P.pipe_loss)
-
-        cap = sum(s.capacity_mwh.value for s in cfg.storage) * 1000
-        soc_min = sum(s.capacity_mwh.value * s.min_soc_fraction.value for s in cfg.storage) * 1000
-        ch_max = sum(s.max_charge_mw.value for s in cfg.storage) * 1000
-        dis_max = sum(s.max_discharge_mw.value for s in cfg.storage) * 1000
-        loss_h = sum(s.capacity_mwh.value * s.loss_per_hour.value for s in cfg.storage) * 1000 / max(cap, 1)
-        soc = np.full(N, min(state.storage_soc_mwh * 1000, cap))
-
-        unmet_hours = np.zeros((N, B), int)
-        unmet_kwh = np.zeros(N)
-        delivered = np.zeros((N, B))
-        elec = np.zeros((N, B))
-        refunds_kwh_price = np.zeros((N, B))
-        dc_heat = np.zeros(N)
-        g = P.guaranteed
-        for h in range(H):
-            need = P.demand_kw[:, h] * dm * bldg_mult                              # (N, B)
-            draw = need * draw_per_heat
-            avail = P.supply_kw[h] * sm
-            total = draw.sum(axis=1)
-            surplus = avail - total
-            charge = np.clip(np.minimum(surplus, ch_max), 0, np.maximum(cap - soc, 0))
-            discharge = np.clip(np.minimum(-surplus, dis_max), 0, np.maximum(soc - soc_min, 0))
-            soc = (soc + charge - discharge) * (1 - loss_h)
-            covered = np.minimum(avail + discharge, total)
-            dc_heat += np.minimum(avail, total + charge)
-            draw_g = (draw * g).sum(axis=1)
-            served_g = np.minimum(draw_g, covered)
-            draw_o = total - draw_g
-            frac_g = np.divide(served_g, draw_g, out=np.ones(N), where=draw_g > 0)
-            frac_o = np.divide(covered - served_g, draw_o, out=np.ones(N), where=draw_o > 0)
-            served = np.where(g, frac_g[:, None], frac_o[:, None])
-            short = need * (1 - served)
-            missed = (1 - served) > 0.01
-            unmet_hours += missed
-            unmet_kwh += short.sum(axis=1)
-            delivered += need * served
-            elec += need * served * elec_per_heat
-            refunds_kwh_price += np.where(missed & g, need, 0.0)
-
-        # ---- money over the window (capex allocated by share of annual heat)
-        ep = state.electricity_price_usd_per_mwh * em / 1000                      # $/kWh (N,)
-        cost_kwh = P.current_cost * fm / 1000                                     # (N, B)
-        bill = delivered * cost_kwh * P.price_frac                                # all-in heat bill
-        refund_mult = cfg.party("guarantee_buyers").terms["refund_multiple"].value if any(p.id == "guarantee_buyers" for p in cfg.parties) else 3.0
-        refunds = refunds_kwh_price * cost_kwh * P.price_frac * refund_mult
-        hp_elec_cost = elec * ep[:, None]
-        offtaker_net = delivered * cost_kwh - bill - P.capex_annual_offtaker * P.window_share + refunds
-        if "ll97_fine_usd_per_t" in cfg.policy:     # Local Law 97 avoided fines (Chelsea)
-            avoided_t = (delivered * P.fuel_t_per_kwh_heat - elec * cfg.emissions.grid_t_per_mwh.value / 1000)
-            offtaker_net = offtaker_net + avoided_t * cfg.policy["ll97_fine_usd_per_t"].value
-        loop_charge = bill - hp_elec_cost          # building's own HP electricity is netted from its loop charge
-        chiller_avoided = dc_heat / cfg.data_center.chiller_cop.value * ep
-        pump_cost = P.supply_kw.sum() * 0.02 * ep  # ~2% of heat moved, assumption - verify
-        network_capex = P.capex_annual_network * P.network_window_share
-
-        party_net: dict[str, np.ndarray] = {p.id: np.zeros(N) for p in cfg.parties}
-        for b_i, p in enumerate(P.party):
-            party_net[p] += offtaker_net[:, b_i]
-        revenue = loop_charge.sum(axis=1) - refunds.sum(axis=1) - pump_cost
-        if state.site == "chelsea":
-            fee = chiller_avoided * cfg.party("google").terms["heat_removal_fee_share"].value
-            party_net["google"] += chiller_avoided - fee
-            party_net["con_ed"] += revenue + fee - network_capex
-        else:
-            t = cfg.party("terawulf").terms
-            share = t["heat_revenue_share"].value
-            party_net["terawulf"] += chiller_avoided + share * revenue - t["network_share"].value * network_capex
-            party_net["joint_venture"] += (1 - share) * revenue - (1 - t["network_share"].value) * network_capex
-
-        system_cost = hp_elec_cost.sum(axis=1) + pump_cost + (unmet_kwh / 1000) * 10_000
-        return [FutureOutcome(
-            unmet_hours_by_building={bid: int(unmet_hours[n, i]) for i, bid in enumerate(P.ids)},
-            unmet_mwh=float(unmet_kwh[n] / 1000),
-            refunds_usd_by_building={bid: float(refunds[n, i]) for i, bid in enumerate(P.ids) if g[i]},
-            party_net_usd={k: float(v[n]) for k, v in party_net.items()},
-            system_cost_usd=float(system_cost[n]),
-        ) for n in range(N)]
-
-    def simulate_future(self, plan: Plan, state: SimState, inputs: FutureInputs) -> FutureOutcome:
-        return self.simulate_futures(plan, state, [inputs])[0]
-
-
 # ===================================================================== confidence
 
 DRIVERS = {
@@ -748,9 +517,10 @@ class MockConfidenceProvider:
             cvar = float(tail.mean()) if len(tail) else float(r.max())
             prices[b] = round(r.mean() + (cvar - r.mean()), 2)   # expected refunds + CVaR95 risk margin
 
+        kept = {b: float(np.mean([o.unmet_hours_by_building.get(b, 0) == 0 for o in outcomes])) for b in guaranteed}
         return ConfidenceResult(
             p_all_warm=float(np.mean(all_warm)), p_each_party_ahead=party_ahead,
-            expected_unmet_hours=float(np.mean(unmet_hours)), guarantee_prices=prices,
+            expected_unmet_hours=float(np.mean(unmet_hours)), guarantee_prices=prices, p_guarantee_kept=kept,
             top_uncertainty_drivers=self._drivers(futures, outcomes),
             n_futures=n_futures, horizon_hours=state.horizon_hours, method="mock_uniform_jitter")
 

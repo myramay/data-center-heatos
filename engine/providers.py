@@ -16,6 +16,7 @@ from datetime import datetime
 from typing import Protocol, Sequence, runtime_checkable
 
 from engine import mocks
+from engine.futures import EngineFutureSimulator
 from engine.contracts import (
     Building, ConfidenceResult, DemandForecast, FutureInputs, FutureOutcome, JevOpinion, ModelCard,
     Plan, SiteId, SimState, SupplyForecast, SupplyScenario, WeatherScenario, WeatherSeries,
@@ -78,8 +79,8 @@ BUILDINGS: BuildingProvider = mocks.MockBuildingProvider()
 WEATHER: WeatherProvider = mocks.MockWeatherProvider()
 DEMAND: DemandProvider = mocks.MockDemandProvider(buildings=BUILDINGS, weather=WEATHER)
 SUPPLY: SupplyProvider = mocks.MockSupplyProvider()
-# Engine-owned; becomes engine.sim's simulator in build step 2.
-SIMULATOR: FutureSimulator = mocks.QuickBalanceSimulator(buildings=BUILDINGS, demand=DEMAND, supply=SUPPLY)
+# Engine-owned (real physics + ledger), not an ML provider.
+SIMULATOR: FutureSimulator = EngineFutureSimulator()
 CONFIDENCE: ConfidenceProvider = mocks.MockConfidenceProvider(simulator=SIMULATOR)
 JEV: JevProvider = mocks.MockJevProvider()
 

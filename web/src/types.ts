@@ -96,6 +96,7 @@ export interface SimState {
   active_scenarios: string[];
   weather_scenario: WeatherScenario;
   supply_scenario: SupplyScenario;
+  run_id: string | null; // live run; futures branch from its inputs
 }
 
 export interface FutureInputs {
@@ -125,6 +126,7 @@ export interface ConfidenceResult {
   p_each_party_ahead: Record<string, number>;
   expected_unmet_hours: number;
   guarantee_prices: Record<string, number>; // USD premium over the evaluated horizon
+  p_guarantee_kept: Record<string, number>; // P(no missed hour over the horizon)
   top_uncertainty_drivers: UncertaintyDriver[];
   n_futures: number;
   horizon_hours: number;

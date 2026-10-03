@@ -11,6 +11,7 @@ Deterministic: same arguments, same numbers.
 
 from __future__ import annotations
 
+import weakref
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -25,8 +26,13 @@ from engine.physics import (
     building_flows, check_balance, derive, dispatch_hour,
 )
 from engine.recommend import quick_plan
+from engine.scenarios import Narrator, apply_scenario
 
 DEFAULT_START = datetime(2026, 1, 12)
+
+# Live runs by id, so Monte Carlo futures can branch from the live state
+# (including any stress tests already applied).
+LIVE_RUNS: "weakref.WeakValueDictionary[str, Simulation]" = weakref.WeakValueDictionary()
 
 # Hot-water share of annual heat by use type (sizes Lansing's booster heat pumps).
 DHW_SHARE = {
@@ -59,8 +65,9 @@ class Simulation:
     def __init__(self, site: SiteId, start: datetime = DEFAULT_START, hours: int = 168,
                  plan: Plan | None = None, autopilot: str | Policy = "rules",
                  weather_scenario: WeatherScenario = "typical", supply_scenario: SupplyScenario = "base",
-                 seed: int = 0):
+                 seed: int = 0, run_id: str | None = None, narrate: bool = True):
         self.site = site
+        self.run_id = run_id
         self.cfg = load_site(site)
         self.seed = seed
         self.weather_scenario = weather_scenario
@@ -72,8 +79,12 @@ class Simulation:
         self.inp = self._load_inputs(start, hours)
         self.der = derive(self.net, self.inp)
         self.active_scenarios: list[str] = []
+        self.scenario_ends: dict[str, int] = {}
         self.events: list[dict] = []
+        self.narrator = Narrator() if narrate else None
         self.reset()
+        if run_id:
+            LIVE_RUNS[run_id] = self
 
     # ------------------------------------------------------------------ setup
 
@@ -87,7 +98,7 @@ class Simulation:
             times=weather.hours, t_out_c=np.array(weather.t_out_c), demand_kw=demand,
             supply_kw=np.array(supply.p50), supply_temp_c=np.array(supply.supply_temp_c),
             elec_usd_per_mwh=np.full(hours, self.cfg.prices.electricity_usd_per_mwh.value),
-            fuel_price_mult=np.ones(hours))
+            fuel_price_mult=np.ones(hours), flex_available=np.ones(hours))
 
     def reset(self, soc_kwh: list[float] | None = None) -> None:
         self.h = 0
@@ -119,12 +130,53 @@ class Simulation:
         h = self.h
         decision = self.policy.decide(self, h)
         r = dispatch_hour(self.net, self.der.send_groups[h], float(self.der.cooling_total_kw[h]),
-                          float(self.inp.supply_kw[h]), self.soc_kwh, self.flex_bank_kwh, decision)
+                          float(self.inp.supply_kw[h]), self.soc_kwh, self.flex_bank_kwh, decision,
+                          flex_kw=self.net.flex_kw * float(self.inp.flex_available[h]))
         self._rec.append(r)
         self.soc_kwh = r.soc_kwh
         self.flex_bank_kwh = r.flex_bank_kwh
+        if self.narrator:
+            self.events.extend(self.narrator.observe(self, h, r))
+        for name, end in list(self.scenario_ends.items()):
+            if h + 1 >= end:
+                del self.scenario_ends[name]
+                self.active_scenarios.remove(name)
+                self.events.append(self.event(h, "recovery", "ok", f"Stress test over: {name.replace('_', ' ')}"))
         self.h += 1
         return r
+
+    # ------------------------------------------------------------------ scenarios
+
+    def apply_scenario(self, name: str) -> list[dict]:
+        """Fire a stress test from the current hour; returns its opening events."""
+        events = apply_scenario(self, name)
+        self.events.extend(events)
+        return events
+
+    def event(self, h: int, kind: str, severity: str, text: str) -> dict:
+        h = min(max(h, 0), self.hours - 1)
+        return {"hour_index": h, "time": self.inp.times[h].isoformat(), "kind": kind,
+                "severity": severity, "text": text}
+
+    def window_clone(self, h0: int, hours: int, soc_kwh: list[float] | None = None) -> "Simulation":
+        """Independent copy of hours [h0, h0+hours) of this run's inputs, starting
+        from the given (default: current) storage state. Used for Monte Carlo futures."""
+        c = object.__new__(Simulation)
+        for k in ("site", "cfg", "seed", "weather_scenario", "supply_scenario", "all_buildings", "plan", "net", "policy"):
+            setattr(c, k, getattr(self, k))
+        sl = slice(h0, min(h0 + hours, self.hours))
+        i = self.inp
+        c.inp = HourlyInputs(
+            times=i.times[sl], t_out_c=i.t_out_c[sl].copy(), demand_kw=i.demand_kw[sl].copy(),
+            supply_kw=i.supply_kw[sl].copy(), supply_temp_c=i.supply_temp_c[sl].copy(),
+            elec_usd_per_mwh=i.elec_usd_per_mwh[sl].copy(), fuel_price_mult=i.fuel_price_mult[sl].copy(),
+            flex_available=i.flex_available[sl].copy())
+        c.der = derive(c.net, c.inp)
+        c.run_id, c.narrator, c.events = None, None, []
+        c.active_scenarios, c.scenario_ends = list(self.active_scenarios), {}
+        c.reset(self.soc_kwh if soc_kwh is None else soc_kwh)
+        c.flex_bank_kwh = self.flex_bank_kwh
+        return c
 
     def run(self, hours: int | None = None) -> RunResult:
         stop = self.hours if hours is None else min(self.h + hours, self.hours)
@@ -138,7 +190,7 @@ class Simulation:
         rec = self._rec[sl]
         flows = building_flows(
             self.net, self.inp, self.der, sl,
-            frac_g=[r.frac_guaranteed for r in rec], frac_o=[r.frac_other for r in rec],
+            served=[r.served_send_kw for r in rec],
             steam_on=[r.steam_hp_on for r in rec], dc_used=[r.dc_used_kw for r in rec],
             cooling_in=[r.cooling_in_kw for r in rec],
             storage_in=np.array([r.storage_in_kw for r in rec]).reshape(len(rec), -1),
@@ -239,7 +291,7 @@ class Simulation:
             electricity_price_usd_per_mwh=float(self.inp.elec_usd_per_mwh[h]),
             flexible_compute_available=self.net.flex_kw > 0 and self.flex_bank_kwh > 0,
             active_scenarios=list(self.active_scenarios), weather_scenario=self.weather_scenario,
-            supply_scenario=self.supply_scenario)
+            supply_scenario=self.supply_scenario, run_id=self.run_id)
 
     def frame(self) -> dict:
         """Snapshot of the last simulated hour (WebSocket payload, formalized in step 4)."""

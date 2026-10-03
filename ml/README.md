@@ -45,7 +45,8 @@ WeatherSeries     hours[H], t_out_c[H], scenario
 DemandForecast    building_id, hours[H], p05[H] <= p50[H] <= p95[H]   (kW, >= 0; validated)
 SupplyForecast    hours[H], p05[H] <= p50[H] <= p95[H] (kW), supply_temp_c[H]
 ConfidenceResult  p_all_warm, p_each_party_ahead{party_id: p}, expected_unmet_hours,
-                  guarantee_prices{building_id: USD over the horizon}, top_uncertainty_drivers
+                  guarantee_prices{building_id: USD over the horizon},
+                  p_guarantee_kept{building_id: P(no missed hour)}, top_uncertainty_drivers
                   [{name, share}] (shares sum to 1), n_futures, horizon_hours, method
 JevOpinion        playbook, playbook_probability, p_supply_meets_guarantees, latency_ms, available
 ModelCard         name, version, method, datasets[], assumptions[], metrics{}, is_mock
@@ -67,7 +68,13 @@ Lansing: `terawulf, joint_venture, ag_schools, homes_coop`).
 - **guarantee_prices**: per guaranteed building, the premium for the horizon:
   `E[refunds] + (CVaR95[refunds] − E[refunds])`. Refund per missed hour = 3 × that hour's heat bill.
 - **p_each_party_ahead**: P(party's net cash over the horizon > 0). Capex is
-  allocated by each building's share of annual heat.
+  allocated by each building's share of annual heat. `FutureOutcome.party_net_usd`
+  already contains exactly this per future (it comes from engine/ledger.py).
+- **p_guarantee_kept**: per guaranteed building, the share of futures with no missed hour.
+
+`SimState.run_id`: when set, it names a live run. Futures then branch from
+that run's current hour, with any stress tests already applied. Pass the
+`state` you were given straight through to the simulator.
 
 ## Calling the engine's simulator (Monte Carlo)
 

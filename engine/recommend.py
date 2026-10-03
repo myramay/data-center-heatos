@@ -20,7 +20,7 @@ def quick_plan(site: SiteId, buildings: Sequence[Building]) -> Plan:
     the data center's typical output plus half the storage discharge rate.
     """
     cfg = load_site(site)
-    max_m = 650.0 if site == "chelsea" else 1500.0
+    max_m = 650.0 if site == "chelsea" else 4500.0
     dc = cfg.data_center
     budget_kw = (dc.capacity_mw_th.value * 1000 * dc.capture_fraction.value * 0.85
                  + 0.5 * sum(s.max_discharge_mw.value for s in cfg.storage) * 1000)
