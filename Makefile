@@ -1,15 +1,25 @@
 PY := .venv/bin/python
 
-.PHONY: setup test dev
+.PHONY: setup test dev api web record
 
 setup:
 	uv python install 3.11
 	uv venv --python 3.11 .venv
 	uv pip install -e ".[dev]"
+	cd web && npm install
 
 test:
 	$(PY) -m pytest -q
 
-# Backend + frontend; filled in at build steps 4-5.
+api:
+	.venv/bin/uvicorn api.server:app --port 8000 --reload
+
+web:
+	cd web && npm run dev
+
+# backend + frontend together (Ctrl-C stops both)
 dev:
-	@echo "make dev arrives with the API (step 4) and web app (step 5)"
+	@trap 'kill 0' INT TERM; .venv/bin/uvicorn api.server:app --port 8000 & (cd web && npm run dev) & wait
+
+record:
+	$(PY) -m scripts.record

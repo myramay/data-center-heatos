@@ -11,6 +11,7 @@ Deterministic: same arguments, same numbers.
 
 from __future__ import annotations
 
+import threading
 import weakref
 from dataclasses import dataclass
 from datetime import datetime
@@ -59,6 +60,7 @@ class RunResult:
     steam_hp_on: np.ndarray
     elec_usd_per_mwh: np.ndarray
     summary: dict
+    start_hour: int = 0
 
 
 class Simulation:
@@ -82,6 +84,7 @@ class Simulation:
         self.scenario_ends: dict[str, int] = {}
         self.events: list[dict] = []
         self.narrator = Narrator() if narrate else None
+        self.lock = threading.RLock()
         self.reset()
         if run_id:
             LIVE_RUNS[run_id] = self
@@ -127,6 +130,10 @@ class Simulation:
     def step(self) -> HourDispatch:
         if self.done:
             raise StopIteration("simulation horizon exhausted")
+        with self.lock:
+            return self._step()
+
+    def _step(self) -> HourDispatch:
         h = self.h
         decision = self.policy.decide(self, h)
         r = dispatch_hour(self.net, self.der.send_groups[h], float(self.der.cooling_total_kw[h]),
@@ -161,7 +168,12 @@ class Simulation:
     def window_clone(self, h0: int, hours: int, soc_kwh: list[float] | None = None) -> "Simulation":
         """Independent copy of hours [h0, h0+hours) of this run's inputs, starting
         from the given (default: current) storage state. Used for Monte Carlo futures."""
+        with self.lock:
+            return self._window_clone(h0, hours, soc_kwh)
+
+    def _window_clone(self, h0: int, hours: int, soc_kwh: list[float] | None) -> "Simulation":
         c = object.__new__(Simulation)
+        c.lock = threading.RLock()
         for k in ("site", "cfg", "seed", "weather_scenario", "supply_scenario", "all_buildings", "plan", "net", "policy"):
             setattr(c, k, getattr(self, k))
         sl = slice(h0, min(h0 + hours, self.hours))
@@ -220,6 +232,20 @@ class Simulation:
             elec_usd_per_mwh=self.inp.elec_usd_per_mwh[:n], summary={})
         res.summary = self._summarize(res, sl)
         return res
+
+    def hour_result(self, h: int) -> RunResult:
+        """RunResult for a single simulated hour (for per-frame money)."""
+        r = self._rec[h]
+        flows = self._flows(slice(h, h + 1))
+        ccop = self.cfg.loop.cooling_cop.value if self.cfg.loop.cooling_cop else 6.0
+        one = lambda v: np.array([v])
+        return RunResult(
+            site=self.site, times=self.inp.times[h:h + 1], ids=self.net.ids, flows=flows,
+            supply_kw=one(r.supply_kw), dc_used_kw=one(r.dc_used_kw), dc_fallback_kw=one(r.dc_fallback_kw),
+            cooling_in_kw=one(r.cooling_in_kw), cooling_sold_kw=one(r.cooling_in_kw / (1 + 1 / ccop)),
+            storage_in_kw=np.array([r.storage_in_kw]).reshape(1, -1), storage_out_kw=np.array([r.storage_out_kw]).reshape(1, -1),
+            soc_kwh=np.array([r.soc_kwh]).reshape(1, -1), shift_kw=one(r.shift_kw), steam_hp_on=one(r.steam_hp_on),
+            elec_usd_per_mwh=self.inp.elec_usd_per_mwh[h:h + 1], summary={}, start_hour=h)
 
     def _check_storage(self, soc, s_in, s_out, loss) -> None:
         start = np.array(self._soc_start)

@@ -1,0 +1,119 @@
+# HeatOS: {{ site.name }} data center heat reuse
+
+*Generated {{ generated }} from the live HeatOS model{% if run %} (run `{{ run.run_id }}`, simulated through {{ run.time }}){% endif %}.*
+*Pitch: Data center heat that neighbors can count on, with a price for that certainty.*
+
+> **Data status.** {{ data_status }}
+> Every number below is computed by the model; the source of each input is listed in Appendix A. Inputs marked "assumption - verify" are placeholders to be confirmed.
+
+---
+
+## 1. Decision framework: where heat reuse should go first
+
+HeatOS scores both candidate sites on nine weighted criteria (1-5 scale).
+
+| Criterion | Weight | Chelsea | Lansing | Why |
+|---|---:|---:|---:|---|
+{% for c in scores.criteria -%}
+| {{ c.label }} | {{ (c.weight * 100) | round | int }}% | {{ c.chelsea }} | {{ c.lansing }} | {{ c.rationale }} |
+{% endfor -%}
+| **Weighted total** | 100% | **{{ "%.2f" | format(scores.totals.chelsea) }}** | **{{ "%.2f" | format(scores.totals.lansing) }}** | |
+
+**Robustness.** Across {{ "{:,}".format(scores.robustness.n_draws) }} random re-weightings (Dirichlet, alpha = weight x {{ scores.robustness.alpha_scale | int }}) with +/-{{ scores.robustness.score_noise }} noise on every score, **Chelsea ranks first in {{ "%.1f" | format(scores.robustness.p_chelsea_wins * 100) }}% of draws**. Recommendation: **{{ scores.recommended | title }}**.
+
+Within the chosen site, a building connects only if its best option has a positive 20-year value (financial NPV at {{ "%.0f" | format(cfg.finance.discount_rate.value * 100) }}% plus avoided CO2 at ${{ carbon_price | int }}/t), and only while the data center has firm capacity left. Buildings are added in priority order: NPV x (1 + equity score) x boiler urgency.
+
+## 2. Data analysis
+
+### Datasets and models
+| Component | Method | Datasets | Status |
+|---|---|---|---|
+{% for name, m in model_cards.items() -%}
+| {{ m.name }} | {{ m.method }} | {{ m.datasets | join(", ") or "-" }} | {{ "MOCK (teammate model pending)" if m.is_mock else "v" ~ m.version }} |
+{% endfor %}
+
+### Building inventory ({{ buildings | length }} candidates)
+| Heating system | Buildings | Annual heat (MWh) |
+|---|---:|---:|
+{% for k, v in inventory.items() -%}
+| {{ k }} | {{ v.n }} | {{ "{:,.0f}".format(v.mwh) }} |
+{% endfor %}
+
+### Recommendation ({{ connected | length }} buildings connected)
+| Building | Use | Option | Phase | 20-yr value NPV | Reasons |
+|---|---|---|---:|---:|---|
+{% for row in connected -%}
+| {{ row.name }} | {{ row.use }} | {{ row.option }} | {{ row.phase }} | ${{ "{:,.0f}".format(row.npv) }} | {{ row.reasons }} |
+{% endfor %}
+
+Not connected: {{ not_connected.npv_negative }} buildings with no option of positive value; {{ not_connected.capacity_limit }} worthwhile buildings waiting on capacity. Firm capacity used: {{ "{:,.0f}".format(plan_used_kw) }} of {{ "{:,.0f}".format(plan_budget_kw) }} kW.
+
+### Key modelling assumptions
+- Heat pump COP = eta x T_hot / (T_hot - T_cold), eta {{ cfg.heat_pumps.eta.value }} (range {{ cfg.heat_pumps.eta.low }}-{{ cfg.heat_pumps.eta.high }}).
+- Energy balance closes every simulated hour within 0.1%; a full year simulates in under a second.
+- Autopilot: rules (data center heat, then storage, then existing boilers) or MPC (48 h linear program minimizing electricity + fuel + carbon).
+- Full parameter list with sources: Appendix A.
+
+## 3. Sustainability impact (full simulated year)
+
+| Metric | Central | Range |
+|---|---:|---|
+| Heat delivered | {{ "{:,.0f}".format(impact.heat_delivered_mwh) }} MWh | |
+| Fuel displaced | {{ "{:,.0f}".format(impact.fuel_displaced_mwh) }} MWh | {{ impact.fuel_displaced_by_type_mwh | dictsort | map("join", ": ") | join(", ") }} |
+| Net CO2 avoided | {{ "{:,.0f}".format(impact.net_co2_avoided_t.central) }} t/yr | {{ "{:,.0f}".format(impact.net_co2_avoided_t.low) }}-{{ "{:,.0f}".format(impact.net_co2_avoided_t.high) }} (grid factor range) |
+| Per MW thermal-year | {{ "{:,.0f}".format(impact.net_co2_t_per_mw_yr.central) }} t | sanity band at this utilization {{ impact.sanity_band_t_per_mw_yr[0] }}-{{ impact.sanity_band_t_per_mw_yr[1] }}: {{ "pass" if impact.sanity_ok else "CHECK" }} |
+| Energy Reuse Factor (ERF) | {{ impact.erf }} | reused / IT energy |
+| Energy Reuse Effectiveness (ERE) | {{ impact.ere }} | (facility - reused) / IT energy |
+{% if impact.water -%}
+| Cooling-tower water avoided | {{ "{:,.0f}".format(impact.water.tower_water_avoided_m3) }} m3 | evaporation {{ "{:,.0f}".format(impact.water.evaporation_avoided_m3) }} m3 |
+| Water added via electricity | {{ "{:,.0f}".format(impact.water.indirect_water_added_m3) }} m3 | 2 gal/kWh |
+| **Net water** | **{{ "{:,.0f}".format(impact.water.net_water_saved_m3) }} m3** | {{ "saved" if impact.water.net_water_saved_m3 > 0 else "net cost: heat pump electricity outweighs tower savings" }} |
+{% endif %}
+
+### HDR regenerative scorecard (-2 degenerative ... +2 regenerative)
+| Category | Baseline | With HeatOS | Baseline basis | Change basis |
+|---|---:|---:|---|---|
+{% for r in impact.scorecard -%}
+| {{ r.category }} | {{ r.baseline }} | {{ r.with_heatos }} | {{ r.baseline_basis }} | {{ r.change_basis }} |
+{% endfor %}
+
+## 4. Risk assessment
+
+| Risk | Type | Likelihood | Impact | Mitigation | Owner | Linked stress test | Modelled result |
+|---|---|---|---|---|---|---|---|
+{% for r in risks -%}
+| {{ r.risk }} | {{ r.type }} | {{ r.likelihood }} | {{ r.impact }} | {{ r.mitigation }} | {{ r.owner }} | {{ r.test or "-" }} | {{ r.result or "-" }} |
+{% endfor %}
+
+**Confidence.** {{ confidence_text }}
+
+## 5. Implementation vision
+
+{% for ph in phases -%}
+### Phase {{ ph.n }}: {{ ph.title }}
+{{ ph.text }}
+{% if ph.buildings %}Buildings: {{ ph.buildings | join(", ") }}.{% endif %}
+
+{% endfor -%}
+### Who pays, and does everyone come out ahead?
+| Party | Upfront | Financed | Annual operating | 20-yr NPV | Payback | P(ahead) |
+|---|---:|---:|---:|---:|---:|---:|
+{% for p in parties -%}
+| {{ p.name }} | ${{ "{:,.0f}".format(p.upfront_usd) }} | ${{ "{:,.0f}".format(p.financed_usd) }} | ${{ "{:,.0f}".format(p.annual_operating_usd) }} | ${{ "{:,.0f}".format(p.npv_usd) }} | {{ p.payback_year if p.payback_year is not none else "not within horizon" }} | {{ "%.0f%%" | format(p.p_ahead * 100) if p.p_ahead is not none else "-" }} |
+{% endfor %}
+
+**Everyone wins?** {{ deal_text }}
+
+---
+
+## Appendix A: assumptions and sources
+| Parameter | Value | Range | Source |
+|---|---:|---|---|
+{% for path, prm in assumptions -%}
+| `{{ path }}` | {{ prm.value }} | {{ (prm.range | join("-")) if prm.range else "" }} | {{ prm.source }} |
+{% endfor %}
+
+## Appendix B: how each headline number is computed
+{% for k, v in provenance.items() -%}
+- **{{ k }}**: {{ v }}
+{% endfor %}

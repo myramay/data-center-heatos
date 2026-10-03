@@ -16,6 +16,7 @@ dependencies = [
   "fastapi>=0.111",
   "uvicorn[standard]>=0.30",
   "markdown>=3.6",
+  "xhtml2pdf>=0.2.16",
 ]
 
 [project.optional-dependencies]

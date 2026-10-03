@@ -1,0 +1,18 @@
+{
+ "chelsea": [
+  "baseline",
+  "polar_vortex",
+  "tenant_leaves",
+  "server_outage",
+  "heat_wave",
+  "price_spike"
+ ],
+ "lansing": [
+  "baseline",
+  "server_outage",
+  "price_spike",
+  "lake_effect_cold_snap",
+  "greenhouse_off_season",
+  "bitcoin_price_crash"
+ ]
+}

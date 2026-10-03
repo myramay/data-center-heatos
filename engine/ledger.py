@@ -220,7 +220,7 @@ class Operating:
 def operating(sim: "Simulation", result: "RunResult", fractions: dict[str, float]) -> Operating:
     cfg, net = sim.cfg, sim.net
     H = len(result.supply_kw)
-    sl = slice(0, H)
+    sl = slice(result.start_hour, result.start_hour + H)
     f = result.flows
     chelsea = sim.site == "chelsea"
     owner = "con_ed" if chelsea else "joint_venture"
@@ -399,3 +399,29 @@ def compute_ledger(sim: "Simulation", result: "RunResult", terms: DealTerms | No
         refunds_by_building={bid: float(op.refunds_window_b[k]) for k, bid in enumerate(net.ids) if g[k]},
         annual_refunds_by_building={bid: float(op.refunds_annual_b[k]) for k, bid in enumerate(net.ids) if g[k]},
         capex=capex_lines(sim, terms), names={**EXTERNAL, **{p.id: p.name for p in sim.cfg.parties}})
+
+
+def hour_money(sim: "Simulation", h: int, terms: DealTerms | None = None,
+               premiums: dict[str, float] | None = None) -> dict:
+    """Money flows for one simulated hour (live frames): links, party net, refunds by building."""
+    terms = terms or DealTerms.from_config(sim.cfg)
+    premiums = premiums or {}
+    op = operating(sim, sim.hour_result(h), terms.heat_price_fraction)
+    net = sim.net
+    owner = "con_ed" if sim.site == "chelsea" else "joint_venture"
+    links: dict[tuple[str, str, str], float] = {}
+    for f in op.flows:
+        v = float(f.usd.sum())
+        if v > 0.005:
+            links[(f.src, f.dst, f.label)] = links.get((f.src, f.dst, f.label), 0.0) + v
+    party_net = {p: float(v.sum()) for p, v in op.hourly_party_net.items()}
+    for k, bid in enumerate(net.ids):
+        if premiums.get(bid):
+            v = float(op.premium_profile[0, k] * premiums[bid])
+            links[(op.party_of[k], owner, "guarantee premium")] = links.get((op.party_of[k], owner, "guarantee premium"), 0.0) + v
+            party_net[op.party_of[k]] -= v
+            for p, share in op.owner_split.items():
+                party_net[p] += v * share
+    return {"links": [{"source": s, "target": t, "label": lab, "value_usd": round(v, 2)} for (s, t, lab), v in links.items()],
+            "party_net": {p: round(v, 2) for p, v in party_net.items()},
+            "refunds_by_building": {bid: float(op.refunds_window_b[k]) for k, bid in enumerate(net.ids) if net.guaranteed[k]}}
