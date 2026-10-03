@@ -1,0 +1,142 @@
+# SITE B: LANSING (alternative). Preliminary; refined in build step 9.
+site:
+  id: lansing
+  name: Lansing
+  address: Former Cayuga coal plant, Lake Hawkeye, Lansing, NY 14882
+  owner: TeraWulf (proposed)
+  lat: 42.6025
+  lon: -76.6338
+  timezone: America/New_York
+  climate: ithaca
+  recommended: false
+  grid_rotation_deg: 0.0
+
+data_center:
+  name: TeraWulf Lake Hawkeye
+  capacity_mw_th: {value: 20.0, range: [10.0, 30.0], source: "HeatOS working assumption (usable)"}
+  capture_fraction: {value: 0.85, range: [0.75, 0.95], source: "HeatOS working assumption"}
+  supply_temp_c_min: {value: 45.0, source: "liquid cooling supply 45-65 C"}
+  supply_temp_c_max: {value: 65.0, source: "liquid cooling supply 45-65 C"}
+  it_load_mw: {value: 20.0, source: "assumption - verify"}
+  pue: {value: 1.15, range: [1.1, 1.3], source: "liquid-cooled; assumption - verify"}
+  chiller_cop: {value: 5.0, source: "challenge spec"}
+  cooling_towers: false
+  liquid_cooled: true
+  flexible_compute_share: {value: 0.20, range: [0.0, 0.2], source: "challenge spec cap 20%"}
+  compute_follows_heat: true
+
+loop:
+  type: warm
+  supply_temp_c: {value: 50.0, range: [45.0, 55.0], source: "warm loop design"}
+  return_temp_c: {value: 30.0, range: [25.0, 35.0], source: "warm loop design"}
+  pipe_material: pre-insulated steel/PEX
+  pipe_loss_per_km: {value: 0.01, range: [0.005, 0.015], source: "challenge spec default 1%/km"}
+  ambient_loss_ref_c: 12.0
+  ambient_loss_span_c: 40.0
+  direct_link_max_m: {value: 100.0, source: "challenge spec"}
+  direct_use_margin_c: {value: 5.0, source: "challenge spec: direct if required <= supply - 5 C"}
+  sells_cooling: false
+
+heat_pumps:
+  eta: {value: 0.6, range: [0.5, 0.8], source: "Carnot fraction; challenge spec"}
+  steam_hp_t_hot_c: {value: 120.0, source: "unused at Lansing"}
+  steam_hp_eta: {value: 0.45, source: "unused at Lansing"}
+  booster_t_hot_c: {value: 60.0, source: "hot tap water legionella threshold"}
+
+storage:
+  - id: pit
+    type: pit
+    capacity_mwh: {value: 2800.0, source: "~60,000 m3 pit at 40 K delta-T; assumption - verify"}
+    loss_per_hour: {value: 0.0001, source: "assumption - verify"}
+    max_charge_mw: {value: 10.0, source: "assumption - verify"}
+    max_discharge_mw: {value: 10.0, source: "assumption - verify"}
+    min_soc_fraction: {value: 0.05, source: "assumption - verify"}
+    initial_soc_fraction: {value: 0.5, source: "assumption - verify"}
+
+pumping:
+  design_flow_m3h: {value: 860.0, source: "20 MW at 20 K delta-T"}
+  design_power_kw: {value: 250.0, source: "assumption - verify"}
+
+prices:
+  electricity_usd_per_mwh: {value: 110.0, range: [90.0, 130.0], source: "challenge spec (upstate)"}
+  fuels_usd_per_mwh:
+    propane: {value: 92.0, range: [75.0, 110.0], source: "~$2.50/gal at 27 kWh/gal; assumption - verify"}
+    oil: {value: 94.0, range: [80.0, 110.0], source: "~$3.80/gal at 40.6 kWh/gal; assumption - verify"}
+    gas_boiler: {value: 40.0, source: "assumption - verify"}
+    electric: {value: 110.0, source: "same as electricity"}
+  cooling_sale_usd_per_mwh: {value: 0.0, source: "no cooling sales at Lansing"}
+
+emissions:
+  grid_t_per_mwh: {value: 0.12, range: [0.08, 0.2], source: "upstate NY grid; assumption - verify"}
+  fuels_t_per_mwh:
+    propane: {value: 0.215, source: "challenge spec"}
+    oil: {value: 0.25, source: "challenge spec"}
+    gas_boiler: {value: 0.181, source: "challenge spec"}
+    electric: {value: 0.12, source: "same as grid"}
+  water_gal_per_kwh_electricity: {value: 2.0, source: "challenge spec"}
+
+backup_efficiency:
+  propane: {value: 0.85, source: "assumption - verify"}
+  oil: {value: 0.82, source: "assumption - verify"}
+  gas_boiler: {value: 0.85, source: "challenge spec"}
+  electric: {value: 1.0, source: "resistance"}
+  unknown: {value: 0.85, source: "assumption - verify"}
+
+finance:
+  discount_rate: {value: 0.06, source: "challenge spec"}
+  horizon_years: 20
+
+capex:
+  heat_pump_usd_per_kw: {value: 800.0, source: "challenge spec placeholder"}
+  booster_usd_per_kw: {value: 900.0, source: "assumption - verify"}
+  direct_link_usd: {value: 150000.0, source: "challenge spec placeholder"}
+  pipe_usd_per_m: {value: 2500.0, source: "insulated warm loop, challenge spec placeholder"}
+  direct_use_station_usd_per_kw: {value: 120.0, source: "assumption - verify"}
+  pit_usd_per_mwh: {value: 1000.0, source: "assumption - verify"}
+
+policy:
+  tax_abatement_offset_usd_per_yr: {value: 1500000.0, source: "assumption - verify"}
+
+parties:
+  - id: terawulf
+    name: TeraWulf (data center)
+    role: heat_source
+    pays_for: [liquid_cooling, export_station, network_share]
+    earns: [heat_revenue_share, cooling_savings]
+    terms:
+      network_share: {value: 0.30, source: "deal term"}
+      heat_revenue_share: {value: 0.30, source: "assumption - verify"}
+  - id: joint_venture
+    name: Joint venture (TeraWulf + Town of Lansing / Tompkins County)
+    role: network_owner
+    pays_for: [loop, pit_storage]
+    earns: [heat_sales]
+    terms: {}
+  - id: ag_schools
+    name: Greenhouses, aquaculture and schools
+    role: offtaker
+    pays_for: [heat_purchases]
+    earns: [heat_savings]
+    terms:
+      heat_price_fraction: {value: 0.75, source: "deal term: 75% of propane/oil-equivalent"}
+  - id: homes_coop
+    name: Homes co-op
+    role: offtaker
+    pays_for: [booster_heat_pump, heat_purchases]
+    earns: [heat_savings]
+    terms:
+      heat_price_fraction: {value: 0.85, source: "deal term: < current cost"}
+      on_bill_term_years: {value: 15.0, source: "assumption - verify"}
+      on_bill_rate: {value: 0.05, source: "assumption - verify"}
+
+party_by_use_type:
+  greenhouse: ag_schools
+  aquaculture: ag_schools
+  school: ag_schools
+  clinic: ag_schools
+  retail: ag_schools
+  home: homes_coop
+  residential: homes_coop
+
+guarantee_use_types: [school]
+guarantee_building_ids: []

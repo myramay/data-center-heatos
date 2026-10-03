@@ -1,0 +1,36 @@
+[project]
+name = "heatos"
+version = "0.1.0"
+description = "Decision support and live control room for data center heat reuse"
+requires-python = ">=3.11,<3.12"
+dependencies = [
+  "pydantic>=2.7",
+  "numpy>=1.26",
+  "pandas>=2.2",
+  "scipy>=1.13",
+  "cvxpy>=1.5",
+  "highspy>=1.7",
+  "scikit-learn>=1.5",
+  "pyyaml>=6.0",
+  "jinja2>=3.1",
+  "fastapi>=0.111",
+  "uvicorn[standard]>=0.30",
+  "markdown>=3.6",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "httpx>=0.27"]
+pdf = ["weasyprint>=62"]
+
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["engine*", "ml*", "api*"]
+
+[tool.setuptools.package-data]
+engine = ["sites/*.yaml", "templates/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

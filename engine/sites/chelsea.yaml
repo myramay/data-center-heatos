@@ -1,0 +1,168 @@
+# SITE A: CHELSEA (recommended)
+# Values tagged "assumption - verify" are placeholders to be confirmed.
+site:
+  id: chelsea
+  name: Chelsea
+  address: 111 8th Ave, New York, NY 10011
+  owner: Google
+  lat: 40.7411
+  lon: -74.0032
+  timezone: America/New_York
+  climate: nyc
+  recommended: true
+  grid_rotation_deg: 29.0          # Manhattan street grid vs true north
+
+data_center:
+  name: 111 8th Ave
+  capacity_mw_th: {value: 5.0, range: [3.0, 8.0], source: "HeatOS working assumption (challenge brief)"}
+  capture_fraction: {value: 0.85, range: [0.75, 0.9], source: "HeatOS working assumption"}
+  supply_temp_c_min: {value: 27.0, source: "air-cooled facility water return; assumption - verify"}
+  supply_temp_c_max: {value: 32.0, source: "air-cooled facility water return; assumption - verify"}
+  it_load_mw: {value: 5.0, source: "heat ~= IT load; assumption - verify"}
+  pue: {value: 1.4, range: [1.2, 1.6], source: "assumption - verify"}
+  chiller_cop: {value: 5.0, source: "challenge spec (chiller COP 5)"}
+  cooling_towers: true
+  liquid_cooled: false
+  flexible_compute_share: {value: 0.0, source: "multi-tenant colocation: no flexible load"}
+  compute_follows_heat: false
+
+loop:
+  type: ambient_two_way
+  supply_temp_c: {value: 25.0, range: [15.0, 30.0], source: "ambient loop design band 15-30 C"}
+  return_temp_c: {value: 15.0, range: [10.0, 20.0], source: "assumption - verify"}
+  pipe_material: HDPE (uninsulated plastic)
+  pipe_loss_per_km: {value: 0.01, range: [0.005, 0.015], source: "challenge spec default 1%/km"}
+  ambient_loss_ref_c: 12.0
+  ambient_loss_span_c: 40.0
+  direct_link_max_m: {value: 100.0, source: "challenge spec: direct HX link under ~100 m"}
+  direct_use_margin_c: {value: 5.0, source: "approach temperature; assumption - verify"}
+  sells_cooling: true
+
+heat_pumps:
+  eta: {value: 0.6, range: [0.5, 0.8], source: "Carnot fraction; challenge spec"}
+  steam_hp_t_hot_c: {value: 120.0, source: "low-pressure steam for existing radiators"}
+  steam_hp_eta: {value: 0.45, source: "challenge spec (expect COP ~2-2.5)"}
+  booster_t_hot_c: {value: 60.0, source: "hot tap water legionella threshold"}
+
+storage:
+  - id: tanks
+    type: hot_water_tank
+    capacity_mwh: {value: 30.0, source: "assumption - verify"}
+    loss_per_hour: {value: 0.005, source: "assumption - verify"}
+    max_charge_mw: {value: 3.0, source: "assumption - verify"}
+    max_discharge_mw: {value: 3.0, source: "assumption - verify"}
+    min_soc_fraction: {value: 0.05, source: "assumption - verify"}
+    initial_soc_fraction: {value: 0.6, source: "assumption - verify"}
+  - id: boreholes
+    type: borehole
+    capacity_mwh: {value: 1500.0, source: "assumption - verify"}
+    loss_per_hour: {value: 0.00005, source: "~35%/yr seasonal loss; assumption - verify"}
+    max_charge_mw: {value: 2.0, source: "assumption - verify"}
+    max_discharge_mw: {value: 2.0, source: "assumption - verify"}
+    min_soc_fraction: {value: 0.1, source: "assumption - verify"}
+    initial_soc_fraction: {value: 0.5, source: "assumption - verify"}
+
+pumping:
+  design_flow_m3h: {value: 430.0, source: "5 MW at 10 K delta-T"}
+  design_power_kw: {value: 150.0, source: "assumption - verify"}
+
+prices:
+  electricity_usd_per_mwh: {value: 225.0, range: [200.0, 250.0], source: "challenge spec (NYC commercial)"}
+  fuels_usd_per_mwh:
+    steam: {value: 115.0, range: [95.0, 135.0], source: "Con Ed steam ~$34/Mlb delivered; assumption - verify"}
+    gas_boiler: {value: 45.0, range: [35.0, 60.0], source: "NYC commercial gas ~$1.30/therm; assumption - verify"}
+    oil: {value: 85.0, range: [70.0, 100.0], source: "No.2 oil ~$3.50/gal; assumption - verify"}
+    electric: {value: 225.0, source: "same as electricity"}
+  cooling_sale_usd_per_mwh: {value: 40.0, source: "assumption - verify"}
+
+emissions:
+  grid_t_per_mwh: {value: 0.346, range: [0.25, 0.442], source: "challenge spec NYC grid range"}
+  fuels_t_per_mwh:
+    gas_boiler: {value: 0.181, source: "challenge spec"}
+    steam: {value: 0.153, source: "LL97 district steam coefficient 0.0000449 t/kBtu"}
+    oil: {value: 0.25, source: "challenge spec"}
+    propane: {value: 0.215, source: "challenge spec"}
+    electric: {value: 0.346, source: "same as grid"}
+  water_gal_per_kwh_electricity: {value: 2.0, source: "challenge spec"}
+
+backup_efficiency:
+  gas_boiler: {value: 0.85, source: "challenge spec"}
+  steam: {value: 1.0, source: "steam metered as delivered heat"}
+  oil: {value: 0.82, source: "assumption - verify"}
+  propane: {value: 0.85, source: "assumption - verify"}
+  electric: {value: 1.0, source: "resistance"}
+  unknown: {value: 0.85, source: "assumption - verify"}
+
+finance:
+  discount_rate: {value: 0.06, source: "challenge spec"}
+  horizon_years: 20
+
+capex:
+  heat_pump_usd_per_kw: {value: 800.0, source: "challenge spec placeholder"}
+  steam_hp_usd_per_kw: {value: 1200.0, source: "challenge spec placeholder"}
+  direct_link_usd: {value: 150000.0, source: "challenge spec placeholder"}
+  pipe_usd_per_m: {value: 1500.0, source: "ambient loop, challenge spec placeholder"}
+  transfer_station_usd_per_m2: {value: 145.0, source: "FPCJ anchor $300-400k / 26,000 sq ft"}
+  borehole_usd_per_mwh: {value: 1200.0, source: "assumption - verify"}
+  tank_usd_per_mwh: {value: 15000.0, source: "assumption - verify"}
+
+policy:
+  ll97_fine_usd_per_t: {value: 268.0, source: "Local Law 97 penalty - verify"}
+  con_ed_regulated_return: {value: 0.095, source: "assumption - verify (UTEN Act rate base)"}
+  con_ed_recovery_years: {value: 25.0, source: "assumption - verify"}
+
+parties:
+  - id: google
+    name: Google (data center)
+    role: heat_source
+    pays_for: [heat_removal_fee]
+    earns: [cooling_savings, freed_power_capacity]
+    terms:
+      heat_removal_fee_share: {value: 0.70, source: "deal term: 70% of avoided chiller electricity"}
+  - id: con_ed
+    name: Con Edison (UTEN Act)
+    role: network_owner
+    pays_for: [loop, pumps, borehole_storage, steam_heat_pumps]
+    earns: [heat_sales, cooling_sales, heat_removal_fee]
+    terms:
+      regulated_return: {value: 0.095, source: "assumption - verify"}
+      recovery_years: {value: 25.0, source: "assumption - verify"}
+  - id: commercial
+    name: Commercial buildings
+    role: offtaker
+    pays_for: [building_heat_pump, heat_purchases]
+    earns: [heat_savings, ll97_avoided_fines]
+    terms:
+      heat_price_fraction: {value: 0.85, range: [0.75, 0.95], source: "deal term"}
+      cpace_term_years: {value: 20.0, source: "C-PACE"}
+      cpace_rate: {value: 0.06, source: "C-PACE; assumption - verify"}
+  - id: public_housing
+    name: Public housing (NYCHA)
+    role: offtaker
+    pays_for: [heat_purchases]
+    earns: [heat_savings]
+    terms:
+      heat_price_fraction: {value: 0.90, range: [0.75, 1.0], source: "deal term: <= current cost"}
+      grant_share: {value: 1.0, source: "NYSERDA grant + commercial surcharge"}
+      commercial_surcharge: {value: 0.02, source: "deal term"}
+  - id: guarantee_buyers
+    name: Guarantee buyers (clinic, senior housing)
+    role: offtaker
+    pays_for: [heat_purchases, guarantee_premium]
+    earns: [heat_savings, refunds]
+    terms:
+      heat_price_fraction: {value: 0.85, source: "deal term"}
+      refund_multiple: {value: 3.0, source: "deal term: 3x hourly heat price per missed hour"}
+      cvar_alpha: {value: 0.95, source: "risk margin quantile"}
+
+party_by_use_type:
+  residential: commercial
+  office: commercial
+  retail: commercial
+  food: commercial
+  school: commercial
+  public_housing: public_housing
+  clinic: guarantee_buyers
+
+guarantee_use_types: [clinic]
+guarantee_building_ids: [CH-17]   # senior housing residence
