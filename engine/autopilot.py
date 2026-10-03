@@ -142,7 +142,8 @@ class MPCPolicy:
         import cvxpy as cp
 
         net, der, inp, cfg = sim.net, sim.der, sim.inp, sim.cfg
-        T = min(self.horizon, sim.hours - h)
+        T = self.horizon                       # fixed horizon (compiled once); padded past the end of the run
+        idx = np.minimum(np.arange(h, h + T), sim.hours - 1)
         U = len(net.storages)
         flex = net.flex_kw > 0
         self._specs, self._flex = net.storages, net.flex_kw
@@ -151,7 +152,7 @@ class MPCPolicy:
             self._problems[key] = self._build(T, U, flex)
         prob, P, (x, z, c, d, w) = self._problems[key]
 
-        sl = slice(h, h + T)
+        sl = idx
         need = inp.demand_kw[sl]
         send = der.send_kw[sl]
         steam = net.steam_hp
