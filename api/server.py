@@ -249,6 +249,13 @@ async def get_compare(site: SiteId = "chelsea", scenario: str | None = None, hou
     return await asyncio.get_running_loop().run_in_executor(None, _compare, site, scenario, hours)
 
 
+@app.get("/alternatives")
+async def get_alternatives(site: SiteId = "chelsea"):
+    from api.live import _jsonable
+    from engine.alternatives import compare
+    return _jsonable(await asyncio.get_running_loop().run_in_executor(None, compare, site))
+
+
 @app.get("/impact")
 async def get_impact(run_id: str):
     from api.live import _jsonable

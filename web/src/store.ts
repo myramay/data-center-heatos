@@ -4,7 +4,7 @@ import type { SiteId } from "./types";
 import { backendUp, loadBundle, startLive, startReplay, type Session } from "./lib/data";
 
 export type Step = "analyze" | "recommend" | "stress" | "deal";
-export type View = "money" | "guarantees" | "impact" | "framework" | "tree" | "report" | null;
+export type View = "physics" | "compare" | "money" | "guarantees" | "impact" | "framework" | "tree" | "report" | null;
 export const STEPS: { id: Step; label: string }[] = [
   { id: "analyze", label: "Analyze" },
   { id: "recommend", label: "Recommend" },

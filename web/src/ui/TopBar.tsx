@@ -3,8 +3,9 @@ import { STEPS, useStore, type View } from "../store";
 import type { SiteId } from "../types";
 
 const VIEWS: { id: Exclude<View, null>; label: string }[] = [
+  { id: "physics", label: "Physics" }, { id: "compare", label: "Compare" }, { id: "tree", label: "Why?" },
   { id: "money", label: "Money" }, { id: "guarantees", label: "Guarantees" }, { id: "impact", label: "Impact" },
-  { id: "framework", label: "Framework" }, { id: "tree", label: "Tree" }, { id: "report", label: "Report" },
+  { id: "framework", label: "Sites" }, { id: "report", label: "Report" },
 ];
 const SPEEDS = [1, 10, 30, 100];
 

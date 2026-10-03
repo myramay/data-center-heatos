@@ -82,6 +82,20 @@ def _jsonable(o):
     return o
 
 
+def _alternatives(site: SiteId) -> dict | None:
+    """Plan-vs-alternatives comparison (a few minutes to compute): read the precomputed copy from
+    recordings/ when present; `make record` refreshes it, GET /alternatives computes it live."""
+    import json
+    from pathlib import Path
+    rec = Path(__file__).resolve().parents[1] / "recordings" / f"{site}_bundle.json"
+    if rec.exists():
+        try:
+            return json.loads(rec.read_text()).get("alternatives")
+        except Exception:
+            return None
+    return None
+
+
 @lru_cache(maxsize=4)
 def bundle(site: SiteId) -> dict:
     """Everything static the UI needs for a site (also saved for Replay mode)."""
@@ -130,6 +144,7 @@ def bundle(site: SiteId) -> dict:
         "annual": {"summary": yr.summary, "impact": impact(year, yr), "parties": parties,
                    "sankey": led.sankey(), "capex": led.capex},
         "model_cards": providers.model_cards(),
+        "alternatives": _alternatives(site),
     })
 
 
@@ -276,10 +291,36 @@ class LiveRun:
                        "storage_cover_h": round(usable / max(send, 1.0), 1),
                        "storage_usable_mwh": round(usable / 1000, 1)},
             "impact_running": {k: round(v, 2) for k, v in self.running.items()},
+            "physics": self._physics(h, r, flows),
         })
         frame = _jsonable(frame)
         self.history.append(frame)
         return frame
+
+    def _physics(self, h: int, r, flows) -> dict:
+        """Every term of the hourly energy balance, for the Physics view."""
+        sim = self.sim
+        hp = float(flows.hp_elec_kw.sum())
+        delivered = float(flows.delivered_kw.sum())
+        hp_mask = sim.net.kind != 0
+        hp_heat = float(flows.delivered_kw[0, hp_mask].sum())
+        cop = hp_heat / hp if hp > 1e-6 else None
+        lhs = r.dc_used_kw + r.cooling_in_kw + sum(r.storage_out_kw) + hp + float(flows.backup_kw.sum())
+        rhs = float(sim.inp.demand_kw[h].sum()) + float(flows.pipe_loss_kw.sum()) + sum(r.storage_in_kw)
+        return {
+            "dc_used_kw": round(r.dc_used_kw, 1), "dc_fallback_kw": round(r.dc_fallback_kw, 1),
+            "cooling_in_kw": round(r.cooling_in_kw, 1),
+            "storage_out_kw": round(sum(r.storage_out_kw), 1), "storage_in_kw": round(sum(r.storage_in_kw), 1),
+            "hp_elec_kw": round(hp, 1), "backup_kw": round(float(flows.backup_kw.sum()), 1),
+            "delivered_kw": round(delivered, 1), "demand_kw": round(float(sim.inp.demand_kw[h].sum()), 1),
+            "pipe_loss_kw": round(float(flows.pipe_loss_kw.sum()), 2), "pump_kw": round(float(flows.pump_kw[0]), 1),
+            "cop_avg": round(cop, 2) if cop else None,
+            "loop_supply_c": round(float(sim.der.loop_temp_c[h]), 1), "loop_return_c": round(float(flows.return_temp_c[0]), 1),
+            "dc_supply_c": round(float(sim.inp.supply_temp_c[h]), 1), "t_out_c": round(float(sim.inp.t_out_c[h]), 1),
+            "flow_m3h": round(float(flows.flow_m3h[0]), 1),
+            "balance_in_kw": round(lhs, 1), "balance_out_kw": round(rhs, 1),
+            "balance_error": float(flows.balance_error[0]),
+        }
 
     def hello(self) -> dict:
         return {"type": "hello", "run_id": self.run_id, "site": self.site, "hours_total": self.sim.hours,

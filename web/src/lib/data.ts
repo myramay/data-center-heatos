@@ -28,6 +28,7 @@ export async function loadBundle(site: SiteId, live: boolean): Promise<Bundle> {
   if (rec) {
     b.report_md = rec.report_md;
     b.autopilot_compare = rec.autopilot_compare;
+    b.alternatives = b.alternatives ?? rec.alternatives;
   }
   return b;
 }

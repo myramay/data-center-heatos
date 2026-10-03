@@ -28,12 +28,12 @@ function Legend() {
   const step = useStore((s) => s.step);
   const items = step === "analyze"
     ? [["#3b2a8f", "low heat use"], ["#22d3ee", ""], ["#f5a524", ""], ["#ff3b3b", "high heat use"]]
-    : [["#ff8a3d", "on network heat"], ["#ffd23f", "drawing on storage"], ["#ff2d2d", "on backup boiler"], ["#2a3348", "not connected"]];
+    : [["#ff7a1a", "on network heat"], ["#f7b500", "drawing on storage"], ["#e5262b", "on backup boiler"], ["#7f97b8", "not connected"], ["#f2f4f7", "other buildings"]];
   return (
     <div className="absolute left-[336px] bottom-[232px] z-10 flex items-center gap-3 px-3 py-1.5 glass" style={{ borderRadius: 10 }}>
       {items.map(([c, l], i) => (
         <span key={i} className="flex items-center gap-1.5 text-[10.5px] text-ink-2">
-          <span className="w-2.5 h-2.5 rounded-sm" style={{ background: c, boxShadow: c !== "#2a3348" ? `0 0 6px ${c}` : undefined }} />{l}
+          <span className="w-2.5 h-2.5 rounded-sm" style={{ background: c, border: "1px solid rgb(255 255 255 / 0.25)" }} />{l}
         </span>
       ))}
     </div>
@@ -64,6 +64,9 @@ export default function App() {
           </motion.div>
         )}
       </AnimatePresence>
+      <div className="absolute right-3 bottom-[222px] z-10 text-[9.5px] text-ink-3/90 px-1.5 py-0.5 rounded" style={{ background: "rgb(255 255 255 / 0.55)", color: "#4b5563" }}>
+        Map © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors © <a href="https://carto.com/attributions" target="_blank" rel="noreferrer">CARTO</a>
+      </div>
       <DemoController />
       <AnimatePresence>
         {toast && (

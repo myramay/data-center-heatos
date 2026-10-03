@@ -67,6 +67,28 @@ export interface Frame {
   guarantees: GuaranteeRow[];
   margin: { supply_margin_pct: number; storage_cover_h: number; storage_usable_mwh: number };
   impact_running: { heat_mwh: number; co2_t: number; water_m3: number; backup_mwh: number; cooling_mwh: number };
+  physics?: Physics;
+}
+
+export interface Physics {
+  dc_used_kw: number; dc_fallback_kw: number; cooling_in_kw: number;
+  storage_out_kw: number; storage_in_kw: number; hp_elec_kw: number; backup_kw: number;
+  delivered_kw: number; demand_kw: number; pipe_loss_kw: number; pump_kw: number; cop_avg: number | null;
+  loop_supply_c: number; loop_return_c: number; dc_supply_c: number; t_out_c: number; flow_m3h: number;
+  balance_in_kw: number; balance_out_kw: number; balance_error: number;
+}
+
+export interface Alternative {
+  key: string; label: string; description: string; buildings: number; heat_mwh: number; network_share: number;
+  backup_hours: number; system_cost_usd_per_yr: number; co2_t_per_yr: number; co2_avoided_t_per_yr: number;
+  party_npv_usd: Record<string, number>; everyone_ahead: boolean; min_party: string | null;
+  carbon_waterfall: { step: string; t: number; total?: boolean }[]; notes: string[];
+}
+
+export interface Alternatives {
+  site: string; carbon_price_usd_per_t: number; universe_buildings: number; alternatives: Alternative[];
+  social_cost_usd_per_yr: Record<string, number>; best_social: string;
+  verdict: { heatos_everyone_ahead: boolean; heatos_lowest_social_cost: boolean; summary: string };
 }
 
 export interface TreeNode {
@@ -177,5 +199,6 @@ export interface Bundle {
     parties: PartyEconomics[];
   };
   report_md?: string;
+  alternatives?: Alternatives | null;
   autopilot_compare?: Record<string, { delta_mpc_minus_rules: Record<string, number>; rules: Record<string, number>; mpc: Record<string, number> }>;
 }

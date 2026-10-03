@@ -7,14 +7,11 @@ import { SITE_SCALE } from "./geom";
 
 const COLD = ["polar_vortex", "lake_effect_cold_snap"];
 
+/** Fallback ground drawn when map tiles cannot load (offline demos). */
 export function Ground() {
   const site = useStore((s) => s.site);
   return (
-    <group>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.2, 0]} receiveShadow>
-        <planeGeometry args={[9000, 9000]} />
-        <meshStandardMaterial color="#070b16" roughness={0.95} metalness={0.05} transparent opacity={0.86} />
-      </mesh>
+    <group position={[0, -0.25, 0]} rotation={[0, site === "chelsea" ? -(29 * Math.PI) / 180 : 0, 0]}>
       {site === "chelsea" ? <Streets /> : <Lansing />}
     </group>
   );
@@ -29,7 +26,7 @@ function Streets() {
   }, []);
   return (
     <group>
-      {lines.map((pts, i) => <Line key={i} points={pts} color="#1a2440" lineWidth={1} transparent opacity={0.9} />)}
+      {lines.map((pts, i) => <Line key={i} points={pts} color="#cfd6df" lineWidth={1} transparent opacity={0.9} />)}
     </group>
   );
 }
@@ -85,7 +82,7 @@ export function Snow() {
   return (
     <points ref={ref} key={site}>
       <bufferGeometry><bufferAttribute attach="attributes-position" args={[positions, 3]} /></bufferGeometry>
-      <pointsMaterial color="#dbeafe" size={2.4} sizeAttenuation transparent opacity={0} depthWrite={false} />
+      <pointsMaterial color="#ffffff" size={3.2} sizeAttenuation transparent opacity={0} depthWrite={false} />
     </points>
   );
 }
@@ -95,9 +92,9 @@ export function Atmosphere() {
   const fog = useRef<THREE.Fog>(null!);
   const hemi = useRef<THREE.HemisphereLight>(null!);
   const site = useStore((s) => s.site);
-  const cold = useMemo(() => new THREE.Color("#0c1a33"), []);
-  const hot = useMemo(() => new THREE.Color("#2a140b"), []);
-  const base = useMemo(() => new THREE.Color("#05070d"), []);
+  const cold = useMemo(() => new THREE.Color("#d6e2f0"), []);
+  const hot = useMemo(() => new THREE.Color("#f1e3cf"), []);
+  const base = useMemo(() => new THREE.Color("#dfe7ef"), []);
   useFrame(({ scene }, dt) => {
     const f = useStore.getState().frame;
     const isCold = !!f && (f.active_scenarios.some((a) => COLD.includes(a)) || f.weather.t_out_c < -8);
@@ -105,13 +102,13 @@ export function Atmosphere() {
     const target = isCold ? cold : isHot ? hot : base;
     fog.current.color.lerp(target, Math.min(1, dt * 1.5));
     (scene.background as THREE.Color | null)?.lerp(target, Math.min(1, dt * 1.5));
-    hemi.current.color.lerp(isCold ? new THREE.Color("#9cc7ff") : isHot ? new THREE.Color("#ffb37a") : new THREE.Color("#8aa0d6"), Math.min(1, dt * 1.5));
+    hemi.current.color.lerp(isCold ? new THREE.Color("#dbe8ff") : isHot ? new THREE.Color("#fff0dc") : new THREE.Color("#ffffff"), Math.min(1, dt * 1.5));
   });
-  const far = site === "chelsea" ? 3600 : 3000;
+  const far = site === "chelsea" ? 4200 : 3600;
   return (
     <>
-      <fog ref={fog} attach="fog" args={["#05070d", 900, far]} />
-      <hemisphereLight ref={hemi} args={["#8aa0d6", "#05070d", 0.35]} />
+      <fog ref={fog} attach="fog" args={["#dfe7ef", 1400, far]} />
+      <hemisphereLight ref={hemi} args={["#ffffff", "#b9c3cf", 1.1]} />
     </>
   );
 }

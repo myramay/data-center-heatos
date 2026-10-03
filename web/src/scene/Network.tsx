@@ -3,7 +3,7 @@ import { useFrame } from "@react-three/fiber";
 import { Edges, Html } from "@react-three/drei";
 import * as THREE from "three";
 import { useBundle, useStore } from "../store";
-import { DC_BOX, SITE_SCALE, toWorld } from "./geom";
+import { DC_BOX, GRID_ROT_DEG, SITE_SCALE, toWorld, useCityGeo } from "./geom";
 import { tempToUnit, thermal } from "../lib/format";
 
 // ------------------------------------------------------------------ pipes
@@ -20,7 +20,7 @@ const flowFrag = /* glsl */ `
     float d = fract(vUv.x * uLen / 38.0 - uTime * uSpeed);
     float dash = smoothstep(0.0, 0.15, d) * (1.0 - smoothstep(0.45, 0.6, d));
     float rim = pow(abs(vUv.y - 0.5) * 2.0, 2.0);
-    vec3 c = uColor * (0.28 + uGlow * dash) + uColor * rim * 0.15;
+    vec3 c = uColor * (0.75 + uGlow * dash) + uColor * rim * 0.2;
     gl_FragColor = vec4(c, 1.0);
   }
 `;
@@ -31,7 +31,7 @@ function Pipe({ points, length }: { points: THREE.Vector3[]; length: number }) {
     const path = new THREE.CurvePath<THREE.Vector3>();
     for (let i = 1; i < points.length; i++) path.add(new THREE.LineCurve3(points[i - 1], points[i]));
     const site = useStore.getState().site;
-    return new THREE.TubeGeometry(path, Math.max(8, points.length * 24), site === "chelsea" ? 3.2 : 2.4, 8, false);
+    return new THREE.TubeGeometry(path, Math.max(8, points.length * 24), site === "chelsea" ? 5.5 : 3.6, 10, false);
   }, [points]);
   const uniforms = useMemo(() => ({
     uTime: { value: 0 }, uSpeed: { value: 1 }, uLen: { value: length }, uDraw: { value: 0 },
@@ -61,11 +61,22 @@ function Pipe({ points, length }: { points: THREE.Vector3[]; length: number }) {
 export function Pipes() {
   const bundle = useBundle();
   const site = useStore((s) => s.site);
-  const pipes = useMemo(() => (bundle?.pipes ?? []).map((p) => ({
-    key: `${p.from}-${p.to}`,
-    length: p.length_m * SITE_SCALE[site],
-    points: p.points.map(([x, y]) => new THREE.Vector3(...toWorld(site, x, y, 2.5))),
-  })), [bundle, site]);
+  const placed = useCityGeo((g) => (g.site === site ? g.placed : null));
+  const pipes = useMemo(() => (bundle?.pipes ?? []).map((p) => {
+    const pts = p.points.map(([x, y]) => new THREE.Vector3(...toWorld(site, x, y, 5)));
+    // finish each run at the real building it serves
+    const end = placed?.[p.to];
+    if (end) {
+      const last = pts[pts.length - 1];
+      if (Math.hypot(last.x - end.x, last.z - end.z) > 3) pts.push(new THREE.Vector3(end.x, 5, end.z));
+    }
+    const start = p.from !== "DC" ? placed?.[p.from] : null;
+    if (start) {
+      const first = pts[0];
+      if (Math.hypot(first.x - start.x, first.z - start.z) > 3) pts.unshift(new THREE.Vector3(start.x, 5, start.z));
+    }
+    return { key: `${p.from}-${p.to}`, length: p.length_m * SITE_SCALE[site], points: pts };
+  }), [bundle, site, placed]);
   return <group>{pipes.map((p) => <Pipe key={`${site}-${p.key}`} points={p.points} length={p.length} />)}</group>;
 }
 
@@ -84,19 +95,20 @@ export function DataCenter() {
     const out = f ? f.data_center.offered_kw / cap : 0.7;
     const used = f ? f.data_center.used_kw / Math.max(f.data_center.offered_kw, 1) : 0.6;
     const pulse = 0.85 + 0.15 * Math.sin(clock.getElapsedTime() * (1.5 + out * 2));
-    thermal(0.55 + 0.4 * used, color).multiplyScalar((0.15 + 2.6 * out) * pulse);
+    thermal(0.6 + 0.35 * used, color).multiplyScalar((0.2 + 1.6 * out) * pulse);
     core.current.color.copy(color);
-    halo.current.intensity = 2e4 * out * pulse * (site === "chelsea" ? 1 : 0.4);
+    halo.current.intensity = 6e3 * out * pulse * (site === "chelsea" ? 1 : 0.4);
   });
   return (
-    <group>
-      <mesh position={[0, box.h / 2, 0]} castShadow>
+    <group rotation={[0, -(GRID_ROT_DEG[site] * Math.PI) / 180, 0]}>
+      <mesh position={[0, box.h / 2, 0]} castShadow receiveShadow>
         <boxGeometry args={[box.w, box.h, box.d]} />
-        <meshStandardMaterial color="#0d1324" roughness={0.3} metalness={0.7} transparent opacity={0.55} />
-        <Edges color="#ffb27a" threshold={15} />
+        <meshStandardMaterial color="#3b4458" roughness={0.45} metalness={0.35} />
+        <Edges color="#ff9a52" threshold={15} />
       </mesh>
-      <mesh position={[0, box.h / 2, 0]} raycast={() => null}>
-        <boxGeometry args={[box.w * 0.82, box.h * 0.86, box.d * 0.7]} />
+      {/* heat-exchanger roof band: glows with the heat the network takes */}
+      <mesh position={[0, box.h + 1.2, 0]} raycast={() => null}>
+        <boxGeometry args={[box.w * 0.9, 2.4, box.d * 0.7]} />
         <meshBasicMaterial ref={core} toneMapped={false} />
       </mesh>
       <pointLight ref={halo} position={[0, box.h + 30, 0]} color="#ff9a52" distance={site === "chelsea" ? 700 : 300} decay={1.6} />
@@ -143,7 +155,9 @@ function FlexRing({ radius }: { radius: number }) {
 
 export function Storage() {
   const site = useStore((s) => s.site);
-  return site === "chelsea" ? <BoreholesAndTanks /> : <Pit />;
+  return site === "chelsea"
+    ? <group rotation={[0, -(GRID_ROT_DEG.chelsea * Math.PI) / 180, 0]}><BoreholesAndTanks /></group>
+    : <Pit />;
 }
 
 function BoreholesAndTanks() {
@@ -156,7 +170,7 @@ function BoreholesAndTanks() {
   }, []);
   useEffect(() => {
     const m = new THREE.Matrix4();
-    positions.forEach(([x, z], i) => { m.makeTranslation(x, -80, z); cols.current.setMatrixAt(i, m); });
+    positions.forEach(([x, z], i) => { m.makeTranslation(x, 38, z); cols.current.setMatrixAt(i, m); });
     cols.current.instanceMatrix.needsUpdate = true;
   }, [positions]);
   useFrame(({ clock }) => {
@@ -169,13 +183,13 @@ function BoreholesAndTanks() {
   return (
     <group>
       <instancedMesh ref={cols} args={[undefined, undefined, positions.length]} raycast={() => null}>
-        <cylinderGeometry args={[2.2, 2.2, 150, 8]} />
+        <cylinderGeometry args={[2.2, 2.2, 76, 8]} />
         <meshBasicMaterial ref={colMat} toneMapped={false} transparent opacity={0.85} />
       </instancedMesh>
-      <mesh position={[-82, -80, 160]} raycast={() => null}>
-        <boxGeometry args={[220, 160, 110]} />
-        <meshBasicMaterial color="#22d3ee" transparent opacity={0.035} depthWrite={false} />
-        <Edges color="#1d6f86" />
+      <mesh position={[-82, 38, 160]} raycast={() => null}>
+        <boxGeometry args={[220, 80, 110]} />
+        <meshBasicMaterial color="#22d3ee" transparent opacity={0.07} depthWrite={false} />
+        <Edges color="#0e7490" />
       </mesh>
       <group position={[200, 0, 95]}>
         {[-22, 22].map((dx) => (
@@ -186,8 +200,8 @@ function BoreholesAndTanks() {
         ))}
         {[-22, 22].map((dx) => <TankFill key={dx} dx={dx} />)}
       </group>
-      <Html position={[-82, 12, 215]} center style={{ pointerEvents: "none" }} zIndexRange={[5, 0]}>
-        <div className="label whitespace-nowrap" style={{ color: "#67e8f9" }}>Borehole field (cutaway)</div>
+      <Html position={[-82, 84, 160]} center style={{ pointerEvents: "none" }} zIndexRange={[5, 0]}>
+        <div className="label whitespace-nowrap px-1.5 py-0.5 rounded" style={{ color: "#0e7490", background: "rgb(255 255 255 / 0.7)" }}>Borehole storage (shown above ground)</div>
       </Html>
     </group>
   );

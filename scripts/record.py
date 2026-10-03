@@ -63,6 +63,8 @@ def main(sites: list[str]) -> None:
             start = datetime(2026, 7, 10) if name == "heat_wave" else datetime(2026, 1, 12)
             compare[name or "baseline"] = _jsonable(compare_autopilots(site, start, 120, name))
         b["autopilot_compare"] = compare
+        from engine.alternatives import compare as compare_alternatives
+        b["alternatives"] = _jsonable(compare_alternatives(site))
         (OUT / f"{site}_bundle.json").write_text(json.dumps(_jsonable(b), separators=(",", ":")))
         (OUT / f"{site}_baseline.json").write_text(json.dumps(base, separators=(",", ":")))
         names = ["baseline"]

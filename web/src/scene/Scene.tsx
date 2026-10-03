@@ -6,10 +6,11 @@ import { BlendFunction } from "postprocessing";
 import * as THREE from "three";
 import type { OrbitControls as OrbitImpl } from "three-stdlib";
 import { useBundle, useStore } from "../store";
-import { Buildings, ContextCity } from "./Buildings";
+import { City } from "./City";
+import { MapGround } from "./MapGround";
 import { DataCenter, Pipes, Storage } from "./Network";
 import { Atmosphere, Ground, Snow } from "./World";
-import { CAMERA_HOME, footprint, toWorld } from "./geom";
+import { CAMERA_HOME, placedOf } from "./geom";
 
 const SHOW_FPS = new URLSearchParams(window.location.search).has("fps");
 
@@ -36,8 +37,7 @@ function CameraRig() {
       fly.current = { pos: new THREE.Vector3(...home.pos), target: new THREE.Vector3(...home.target) };
       return;
     }
-    const [x, , z] = toWorld(site, b.x_m, b.y_m);
-    const h = footprint(site, b).h;
+    const { x, z, h } = placedOf(site, b);
     const target = new THREE.Vector3(x, h * 0.5, z);
     const dir = new THREE.Vector3().subVectors(camera.position, controls.current?.target ?? target).setY(0).normalize();
     const dist = site === "chelsea" ? 380 : 260;
@@ -91,8 +91,8 @@ function Lights() {
   const site = useStore((s) => s.site);
   return (
     <>
-      <ambientLight intensity={0.32} />
-      <directionalLight position={[-600, 900, 500]} intensity={1.05} color="#b9c8ff" castShadow
+      <ambientLight intensity={0.35} />
+      <directionalLight position={[-700, 1100, 450]} intensity={2.3} color="#fff6e8" castShadow
                         shadow-mapSize={[2048, 2048]} shadow-camera-left={-1400} shadow-camera-right={1400}
                         shadow-camera-top={1400} shadow-camera-bottom={-1400} shadow-camera-far={3000} shadow-bias={-0.0005} key={site} />
     </>
@@ -104,10 +104,10 @@ function Effects() {
   const offset = useMemo(() => new THREE.Vector2(0.0018, 0.0012), []);
   return (
     <EffectComposer multisampling={0}>
-      <Bloom mipmapBlur intensity={1.15} luminanceThreshold={0.32} luminanceSmoothing={0.25} radius={0.72} />
+      <Bloom mipmapBlur intensity={0.9} luminanceThreshold={0.92} luminanceSmoothing={0.15} radius={0.6} />
       <ChromaticAberration offset={heat ? offset : new THREE.Vector2(0, 0)} radialModulation={false} modulationOffset={0} />
-      <Noise premultiply blendFunction={BlendFunction.SOFT_LIGHT} opacity={0.18} />
-      <Vignette offset={0.22} darkness={0.78} />
+      <Noise premultiply blendFunction={BlendFunction.SOFT_LIGHT} opacity={0.06} />
+      <Vignette offset={0.3} darkness={0.45} />
     </EffectComposer>
   );
 }
@@ -118,12 +118,12 @@ export function Scene() {
     <Canvas shadows dpr={[1, 1.75]} gl={{ antialias: false, powerPreference: "high-performance" }}
             camera={{ position: CAMERA_HOME.chelsea.pos, fov: 36, near: 2, far: 9000 }}
             onPointerMissed={() => select(null)}>
-      <color attach="background" args={["#05070d"]} />
+      <color attach="background" args={["#dfe7ef"]} />
       <Atmosphere />
       <Lights />
       <Ground />
-      <ContextCity />
-      <Buildings />
+      <MapGround />
+      <City />
       <DataCenter />
       <Pipes />
       <Storage />
