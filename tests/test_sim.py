@@ -5,7 +5,8 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from engine import physics
+from engine import physics, providers
+from engine.recommend import quick_plan
 from engine.physics import Decision, EnergyBalanceError, cop
 from engine.sim import Simulation
 
@@ -108,7 +109,12 @@ def test_steam_hp_off_sends_steam_buildings_to_backup():
         def decide(self, sim, h):
             return Decision(storage_kw=[0.0] * len(sim.net.storages), steam_hp_on=False)
 
-    sim = Simulation("chelsea", hours=24, autopilot=SteamOff())
+    base = quick_plan("chelsea", providers.get_buildings("chelsea"))
+    steam_ids = {b.id for b in providers.get_buildings("chelsea") if b.heating_system == "steam"}
+    plan = base.model_copy(update={"items": [
+        i.model_copy(update={"option": "steam_hp", "connect": True, "design_capacity_kw": 500.0})
+        if i.building_id in steam_ids else i for i in base.items]})
+    sim = Simulation("chelsea", hours=24, autopilot=SteamOff(), plan=plan)
     r = sim.run()
     st = sim.net.steam_hp
     assert st.any()

@@ -25,7 +25,7 @@ from engine.physics import (
     BALANCE_TOLERANCE, EnergyBalanceError, Flows, HourDispatch, HourlyInputs, build_network,
     building_flows, check_balance, derive, dispatch_hour,
 )
-from engine.recommend import quick_plan
+from engine.recommend import recommend_plan
 from engine.scenarios import Narrator, apply_scenario
 
 DEFAULT_START = datetime(2026, 1, 12)
@@ -73,7 +73,7 @@ class Simulation:
         self.weather_scenario = weather_scenario
         self.supply_scenario = supply_scenario
         self.all_buildings = providers.get_buildings(site)
-        self.plan = plan or quick_plan(site, self.all_buildings)
+        self.plan = plan or recommend_plan(site)
         self.net = build_network(self.cfg, self.all_buildings, self.plan, DHW_SHARE)
         self.policy: Policy = make_policy(autopilot) if isinstance(autopilot, str) else autopilot
         self.inp = self._load_inputs(start, hours)

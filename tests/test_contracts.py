@@ -10,7 +10,7 @@ import pytest
 from engine import contracts, providers
 from engine.config import load_site
 from engine.contracts import Building, DemandForecast, JevOpinion, SimState
-from engine.recommend import quick_plan
+from engine.recommend import quick_plan, recommend_plan
 from engine.verdict import verdict
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -144,8 +144,7 @@ def test_band_validation_rejects_bad_forecasts():
 # ------------------------------------------------------------------ confidence / Jev
 
 def test_confidence_shape_and_stress_dip():
-    bs = providers.get_buildings("chelsea")
-    plan = quick_plan("chelsea", bs)
+    plan = recommend_plan("chelsea")
     normal = providers.get_confidence("chelsea", plan, _state("chelsea"), 100)
     vortex = providers.get_confidence("chelsea", plan, _state("chelsea", weather="polar_vortex"), 100)
     assert normal.n_futures == 100 and normal.horizon_hours == 48
