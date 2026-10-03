@@ -31,6 +31,7 @@ from engine.verdict import verdict
 DEFAULT_START = {"chelsea": datetime(2026, 1, 12), "lansing": datetime(2026, 1, 12)}
 DEFAULT_HOURS = 168
 CONFIDENCE_EVERY_H = 6
+JEV_EVERY_H = 3
 LIVE_FUTURES = 40
 DEAL_FUTURES = 16
 
@@ -148,6 +149,9 @@ class LiveRun:
         self.conf_hour = -10**9
         self.conf_dirty = True
         self.conf_lock = threading.Lock()
+        self.jev = None                      # latest JevOpinion (refreshed in the background)
+        self.jev_hour = -10**9
+        self.jev_lock = threading.Lock()
         self.party_totals = {p.id: 0.0 for p in self.cfg.parties}
         self.refunds = {bid: 0.0 for bid in self.sim.plan.guaranteed_ids()}
         self.missed = {bid: 0 for bid in self.sim.plan.guaranteed_ids()}
@@ -176,6 +180,21 @@ class LiveRun:
 
     def mark_dirty(self) -> None:
         self.conf_dirty = True
+        self.jev_hour = -10**9
+
+    def _refresh_jev(self, state) -> None:
+        if not self.jev_lock.acquire(blocking=False):
+            return
+        try:
+            self.jev = providers.get_jev_opinion(state)
+        finally:
+            self.jev_lock.release()
+
+    def maybe_refresh_jev(self, state, every_h: int = JEV_EVERY_H) -> None:
+        """Jev (OpenJev over HTTP) can take ~0.2 s on a CPU: ask it in the background, use the latest answer."""
+        if self.sim.h - self.jev_hour >= every_h and not self.jev_lock.locked():
+            self.jev_hour = self.sim.h
+            threading.Thread(target=self._refresh_jev, args=(state,), daemon=True).start()
 
     # ------------------------------------------------------------------ frames
 
@@ -206,7 +225,8 @@ class LiveRun:
                 self.missed[bid] += 1
 
         state = sim.state()
-        jev = providers.get_jev_opinion(state)
+        self.maybe_refresh_jev(state)
+        jev = self.jev
         conf = self.confidence
         p_mc = conf["p_all_warm"] if conf else None
         guarantees = []
@@ -249,7 +269,7 @@ class LiveRun:
                                                for (s, t, lab), v in agg.items() if v > 0.5]}},
             "confidence": conf,
             "confidence_hour": self.conf_hour if conf else None,
-            "jev": _jsonable(jev) if jev.available else None,
+            "jev": _jsonable(jev) if jev is not None and jev.available else None,
             "verdict": verdict(p_mc, jev) if p_mc is not None else None,
             "guarantees": guarantees,
             "margin": {"supply_margin_pct": round(margin_pct, 1),

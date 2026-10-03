@@ -12,6 +12,7 @@ the REGISTRY block, e.g.
 
 from __future__ import annotations
 
+import os
 from datetime import datetime
 from typing import Protocol, Sequence, runtime_checkable
 
@@ -82,7 +83,12 @@ SUPPLY: SupplyProvider = mocks.MockSupplyProvider()
 # Engine-owned (real physics + ledger), not an ML provider.
 SIMULATOR: FutureSimulator = EngineFutureSimulator()
 CONFIDENCE: ConfidenceProvider = mocks.MockConfidenceProvider(simulator=SIMULATOR)
-JEV: JevProvider = mocks.MockJevProvider()
+# Jev: OpenJev (or any Jev-compatible endpoint, see ml/jev_openjev.py). HEATOS_JEV=mock uses the rule-based mock.
+if os.environ.get("HEATOS_JEV", "openjev") == "openjev":
+    from ml.jev_openjev import OpenJevProvider
+    JEV: JevProvider = OpenJevProvider()
+else:
+    JEV = mocks.MockJevProvider()
 
 
 # ===================================================================== facade used by the engine

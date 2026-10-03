@@ -40,6 +40,9 @@ def record(site: str, scenario: str | None) -> dict:
             run.mark_dirty()
         if run.needs_confidence():
             run.compute_confidence()
+        if run.sim.h - run.jev_hour >= 3:
+            run.jev_hour = run.sim.h
+            run._refresh_jev(run.sim.state())
         frames.append(run.step_frame())
     return {"site": site, "scenario": scenario, "fire_at": FIRE_AT if scenario else None, "hours": HOURS,
             "start": run.sim.inp.times[0].isoformat(), "recorded_at": datetime.now().isoformat(), "frames": frames,
