@@ -148,7 +148,7 @@ class Narrator:
         self.discharging = out_kw > 100 or (self.discharging and out_kw >= 1)
 
         need = sim.inp.demand_kw[h] > 0
-        if r.shortfall_kw <= 1e-6 and (r.steam_hp_on or not net.steam_hp.any()):
+        if r.served_send_kw >= r.requested_send_kw - 1e-6 and (r.steam_hp_on or not net.steam_hp.any()):
             frac = np.ones(net.n)                                       # fast path: nobody short
         else:
             frac = served_fractions(net, sim.der.send_kw[h:h + 1], [r.served_send_kw], [r.steam_hp_on])[0]

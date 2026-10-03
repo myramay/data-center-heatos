@@ -260,6 +260,7 @@ class Decision:
     shift_kw: float = 0.0              # + run deferred compute now, - defer compute
     steam_hp_on: bool = True
     curtail_cooling_frac: float = 0.0  # share of cooling customers turned away
+    serve_cap_kw: float | None = None  # cap on loop heat sent to non-steam buildings (rest go to backup by choice)
 
 
 @dataclass
@@ -273,7 +274,8 @@ class HourDispatch:
     storage_loss_kw: list[float]
     soc_kwh: list[float]               # end of hour
     served_send_kw: float
-    shortfall_kw: float
+    shortfall_kw: float                # heat the network could not deliver
+    requested_send_kw: float           # what all connected buildings needed (before any voluntary cap)
     steam_hp_on: bool
     shift_kw: float
     flex_bank_kwh: float
@@ -282,7 +284,10 @@ class HourDispatch:
 def dispatch_hour(net: Network, send_groups, cooling_total_kw: float, supply_kw: float,
                   soc_kwh: list[float], flex_bank_kwh: float, d: Decision,
                   flex_kw: float | None = None) -> HourDispatch:
-    send_req = float(send_groups[0]) + (float(send_groups[1]) if d.steam_hp_on else 0.0)
+    send_ns = float(send_groups[0])
+    if d.serve_cap_kw is not None:
+        send_ns = min(send_ns, max(d.serve_cap_kw, 0.0))
+    send_req = send_ns + (float(send_groups[1]) if d.steam_hp_on else 0.0)
 
     # compute follows heat: bank holds deferred compute (heat-equivalent kWh)
     flex = net.flex_kw if flex_kw is None else flex_kw
@@ -330,6 +335,7 @@ def dispatch_hour(net: Network, send_groups, cooling_total_kw: float, supply_kw:
         supply_kw=supply, dc_used_kw=dc_used, dc_fallback_kw=supply - dc_used, cooling_in_kw=cool_used,
         storage_in_kw=ch, storage_out_kw=dis, storage_loss_kw=losses, soc_kwh=new_soc,
         served_send_kw=served, shortfall_kw=send_req - served,
+        requested_send_kw=float(send_groups[0]) + (float(send_groups[1]) if d.steam_hp_on else 0.0),
         steam_hp_on=d.steam_hp_on, shift_kw=shift, flex_bank_kwh=flex_bank_kwh - shift)
 
 
