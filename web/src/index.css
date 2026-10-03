@@ -1,0 +1,60 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --color-void: #05070d;
+  --color-panel: #0b1020;
+  --color-ink: #e8edf7;
+  --color-ink-2: #a3adc2;
+  --color-ink-3: #6b7690;
+  --color-line: rgb(148 163 184 / 0.14);
+  --color-accent: #ff8a3d;
+  --color-heat-1: #3b2a8f;
+  --color-heat-2: #22d3ee;
+  --color-heat-3: #f5a524;
+  --color-heat-4: #ff3b3b;
+  /* chart series (validated on #0b1020, dataviz reference dark steps) */
+  --color-s-network: #3987e5;
+  --color-s-storage: #199e70;
+  --color-s-backup: #d95926;
+  /* status (fixed) */
+  --color-good: #0ca30c;
+  --color-warning: #fab219;
+  --color-serious: #ec835a;
+  --color-critical: #d03b3b;
+}
+
+:root { color-scheme: dark; }
+html, body, #root { height: 100%; margin: 0; background: var(--color-void); color: var(--color-ink); overflow: hidden; }
+body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
+.num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+.glass {
+  background: linear-gradient(180deg, rgb(13 19 38 / 0.78), rgb(8 12 24 / 0.72));
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  border: 1px solid var(--color-line);
+  border-radius: 14px;
+  box-shadow: 0 10px 40px rgb(0 0 0 / 0.45), inset 0 1px 0 rgb(255 255 255 / 0.04);
+}
+.label { font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-ink-3); font-weight: 600; }
+.scroll-thin { scrollbar-width: thin; scrollbar-color: rgb(148 163 184 / 0.25) transparent; }
+.scroll-thin::-webkit-scrollbar { width: 6px; }
+.scroll-thin::-webkit-scrollbar-thumb { background: rgb(148 163 184 / 0.25); border-radius: 3px; }
+
+.report h1 { font-size: 22px; font-weight: 700; margin: 0 0 6px; }
+.report h2 { font-size: 16px; font-weight: 600; margin: 22px 0 8px; padding-bottom: 4px; border-bottom: 1px solid var(--color-line); }
+.report h3 { font-size: 13.5px; font-weight: 600; margin: 14px 0 6px; color: var(--color-ink); }
+.report p, .report li { font-size: 12.5px; line-height: 1.6; color: var(--color-ink-2); }
+.report table { width: 100%; border-collapse: collapse; margin: 8px 0 14px; font-size: 11.5px; }
+.report th, .report td { border-bottom: 1px solid var(--color-line); padding: 5px 6px; text-align: left; vertical-align: top; color: var(--color-ink-2); }
+.report th { color: var(--color-ink); font-weight: 600; }
+.report blockquote { margin: 8px 0; padding: 6px 12px; border-left: 3px solid var(--color-accent); background: rgb(255 138 61 / 0.07); }
+.report code { font-family: var(--font-mono); font-size: 11px; color: var(--color-ink); }
+@media print {
+  body * { visibility: hidden; }
+  .report, .report * { visibility: visible; }
+  .report { position: absolute; inset: 0; color: #111; background: #fff; }
+  .report p, .report li, .report td, .report th, .report h3 { color: #111; }
+}

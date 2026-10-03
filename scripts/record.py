@@ -20,6 +20,7 @@ from pathlib import Path
 warnings.filterwarnings("ignore", category=UserWarning)
 
 from api.live import LiveRun, _jsonable, bundle, deal_report  # noqa: E402
+from engine.autopilot import compare_autopilots  # noqa: E402
 from engine.contracts import ConfidenceResult  # noqa: E402
 from engine.report import build_report  # noqa: E402
 from engine.scenarios import scenarios_for  # noqa: E402
@@ -54,6 +55,11 @@ def main(sites: list[str]) -> None:
         base = record(site, None)
         conf = ConfidenceResult.model_validate(base["final_confidence"]) if base["final_confidence"] else None
         b["report_md"] = build_report(site, confidence=conf, deal=deal_report(site))
+        compare = {}
+        for name in [None] + [sc.name for sc in scenarios_for(site)]:
+            start = datetime(2026, 7, 10) if name == "heat_wave" else datetime(2026, 1, 12)
+            compare[name or "baseline"] = _jsonable(compare_autopilots(site, start, 120, name))
+        b["autopilot_compare"] = compare
         (OUT / f"{site}_bundle.json").write_text(json.dumps(_jsonable(b), separators=(",", ":")))
         (OUT / f"{site}_baseline.json").write_text(json.dumps(base, separators=(",", ":")))
         names = ["baseline"]

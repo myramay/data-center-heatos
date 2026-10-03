@@ -140,12 +140,12 @@ class Narrator:
         ev = lambda kind, sev, text: out.append(sim.event(h, kind, sev, text))
 
         out_kw = sum(r.storage_out_kw)
-        if out_kw > 100 and not self.discharging:
+        if out_kw > 300 and not self.discharging:
             units = [STORAGE_LABEL.get(u.type, u.id) for u, x in zip(net.storages, r.storage_out_kw) if x > 1]
             ev("ops", "info", f"Storage discharging {out_kw / 1000:.1f} MW ({', '.join(units)})")
         elif out_kw < 1 and self.discharging:
             ev("ops", "ok", "Storage back to charging")
-        self.discharging = out_kw > 100 or (self.discharging and out_kw >= 1)
+        self.discharging = out_kw > 300 or (self.discharging and out_kw >= 1)
 
         need = sim.inp.demand_kw[h] > 0
         if r.served_send_kw >= r.requested_send_kw - 1e-6 and (r.steam_hp_on or not net.steam_hp.any()):
