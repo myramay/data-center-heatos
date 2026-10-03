@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { OrbitControls } from "@react-three/drei";
+import { OrbitControls, Stats } from "@react-three/drei";
 import { Bloom, ChromaticAberration, EffectComposer, Noise, Vignette } from "@react-three/postprocessing";
 import { BlendFunction } from "postprocessing";
 import * as THREE from "three";
@@ -10,6 +10,8 @@ import { Buildings, ContextCity } from "./Buildings";
 import { DataCenter, Pipes, Storage } from "./Network";
 import { Atmosphere, Ground, Snow } from "./World";
 import { CAMERA_HOME, footprint, toWorld } from "./geom";
+
+const SHOW_FPS = new URLSearchParams(window.location.search).has("fps");
 
 function CameraRig() {
   const controls = useRef<OrbitImpl>(null!);
@@ -128,6 +130,7 @@ export function Scene() {
       <Snow />
       <CameraRig />
       <Effects />
+      {SHOW_FPS && <Stats className="!left-auto !right-[392px] !top-[124px]" />}
     </Canvas>
   );
 }
