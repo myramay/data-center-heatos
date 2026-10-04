@@ -50,7 +50,14 @@ function LiveTab() {
   );
 }
 
+const TEAM_PAGES = [
+  { href: "/team/offer.html", label: "Heat offer", hint: "price per unit of heat vs today" },
+  { href: "/team/index.html", label: "Build plan", hint: "the team's phased plan" },
+  { href: "/team/proposal.html", label: "System proposal", hint: "the team's written proposal" },
+];
+
 function AnalysisTab() {
+  const site = useStore((s) => s.site);
   const view = useStore((s) => s.view);
   const setView = useStore((s) => s.setView);
   const open = (id: Exclude<View, null>) => setView(view === id ? null : id);
@@ -71,6 +78,15 @@ function AnalysisTab() {
         {MORE_VIEWS.map((v) => (
           <button key={v.id} onClick={() => open(v.id)}
                   className={`text-left px-2.5 py-2 rounded-lg text-[12px] border transition-colors ${view === v.id ? "border-accent bg-accent/15 text-ink" : "border-line text-ink-2 hover:bg-white/5"}`}>{v.label}</button>
+        ))}
+      </div>
+      <div className="label px-1 pt-4 pb-2">Team pages</div>
+      <div className="flex flex-col gap-1.5">
+        {TEAM_PAGES.map((t) => (
+          <a key={t.href} href={t.href + (site === "lansing" ? "?site=lansing" : "")} target="_blank" rel="noreferrer"
+             className="flex items-center justify-between px-2.5 py-2 rounded-lg text-[12px] border border-line text-ink-2 hover:bg-white/5">
+            <span><span className="text-ink">{t.label}</span> <span className="text-ink-3">· {t.hint}</span></span><span aria-hidden>↗</span>
+          </a>
         ))}
       </div>
     </div>
