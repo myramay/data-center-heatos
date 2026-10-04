@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { useBundle, useStore } from "../store";
-import { Bar, Chip, Gauge, Panel, Sparkline, VerdictBadge } from "./bits";
+import { Bar, Chip, Panel, Sparkline, VerdictBadge } from "./bits";
 import { OPTION_LABEL, mw, num, pct, titleCase, usd } from "../lib/format";
 import { API } from "../lib/data";
 import type { Explanation } from "../frame";
@@ -208,11 +208,17 @@ export function ConfidencePanel() {
   return (
     <Panel className="h-full" title="Confidence" right={<VerdictBadge v={f?.verdict ?? null} />}>
       <div className="px-4 pb-4 overflow-y-auto scroll-thin min-h-0 flex-1">
-        <div className="flex items-center gap-3">
-          <Gauge value={conf?.p_all_warm ?? null} second={f?.jev?.p_supply_meets_guarantees ?? null}
-                 label="P(everyone on network heat, next 48 h)" secondLabel="Jev" size={112} />
-        <div className="text-[11px] text-ink-2 leading-snug">P(every connected building stays on network heat, next 48 h)
-          <div className="text-[10px] text-ink-3 mt-0.5">arc: HeatOS Monte Carlo ({conf?.n_futures ?? "–"} futures) · <span style={{ color: "#c3b8ff" }}>needle: Jev {f?.jev ? `says ${Math.round(f.jev.p_supply_meets_guarantees * 100)}% (${Math.round(f.jev.latency_ms)} ms)` : "not answering: Monte Carlo only"}</span></div></div>
+        {/* Jev's read is the headline; our Monte Carlo sits underneath, smaller */}
+        <div className="py-1">
+          <div className="text-[10.5px] text-ink-3">Jev: P(heat supply holds)</div>
+          <div className="flex items-baseline gap-2">
+            <span className="num text-[24px] leading-tight text-ink">{f?.jev ? `${Math.round(f.jev.p_supply_meets_guarantees * 100)}%` : "–"}</span>
+            <span className="text-[10.5px] text-ink-3">{f?.jev ? `${Math.round(f.jev.latency_ms)} ms` : "not answering"}</span>
+          </div>
+          <div className="text-[11px] text-ink-2 mt-1.5">
+            HeatOS Monte Carlo: <span className="num text-ink">{conf ? `${Math.round(conf.p_all_warm * 100)}%` : "–"}</span>
+            <span className="text-ink-3"> stay on network heat, next 48 h ({conf?.n_futures ?? "–"} futures)</span>
+          </div>
         </div>
         <div className="grid grid-cols-3 gap-2 text-center mt-3">
           <div><div className="label">Unmet h</div><div className="num text-[15px]">{conf ? conf.expected_unmet_hours.toFixed(1) : "–"}</div></div>
