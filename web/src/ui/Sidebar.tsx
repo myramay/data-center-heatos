@@ -11,6 +11,7 @@ const TABS: { id: Tab; label: string }[] = [
 ];
 
 const KEY_VIEWS: { id: Exclude<View, null>; label: string; hint: string }[] = [
+  { id: "transport", label: "How should the heat travel?", hint: "Every transport method, designed and stress-tested" },
   { id: "compare", label: "Best deal for everyone?", hint: "Costs, incentives and carbon vs the alternatives" },
   { id: "tree", label: "Why these buildings?", hint: "The decision tree behind the plan" },
   { id: "physics", label: "Network physics", hint: "Temperatures, flows and the energy balance, live" },

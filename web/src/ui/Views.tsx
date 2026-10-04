@@ -7,11 +7,12 @@ import { useBundle, useStore, type View } from "../store";
 import { Bar, Chip, Panel, Sparkline } from "./bits";
 import { num, partyColor, pct, usd } from "../lib/format";
 import { API } from "../lib/data";
-import { CompareView, PhysicsView, TeamView, WhyTreeDiagram } from "./Views2";
+import { CompareView, PhysicsView, TeamView, TransportView, WhyTreeDiagram } from "./Views2";
 import type { MoneyLink, TreeNode } from "../frame";
 
 const NO_ROWS: never[] = [];
 const TITLES: Record<Exclude<View, null>, string> = {
+  transport: "How should the heat travel?",
   physics: "Network physics (live)", compare: "Is this the best deal for everyone?", team: "Team model (merged)", money: "Who pays whom", guarantees: "Heat guarantees", impact: "Sustainability impact",
   framework: "Decision framework: Chelsea vs Lansing", tree: "Why? decision tree", report: "Report: five deliverables",
 };
@@ -27,6 +28,7 @@ export function Views() {
           <Panel className="h-full" title={TITLES[view]}
                  right={<button onClick={() => setView(null)} className="text-ink-3 hover:text-ink text-[13px]" aria-label="Close">✕</button>}>
             <div className="px-4 pb-4 overflow-y-auto scroll-thin min-h-0 flex-1">
+              {view === "transport" && <TransportView />}
               {view === "physics" && <PhysicsView />}
               {view === "compare" && <CompareView />}
               {view === "team" && <TeamView />}

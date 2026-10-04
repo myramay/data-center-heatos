@@ -175,6 +175,15 @@ export interface PartyEconomics {
 
 export interface ScoreRow { key: string; label: string; weight: number; chelsea: number; lansing: number; rationale: string }
 
+export interface TransportOption {
+  option: string; label: string; description: string; objective: "cost-optimal" | "carbon-weighted";
+  connected: number | null; pipe_km: number | null; heat_gwh: number | null; dc_heat_share_p50: number | null;
+  capex_musd_p50: number | null; lcoh_p50: number | null; tariff_p50: number | null;
+  net_co2_t_p10: number | null; net_co2_t_p50: number | null; system_net_musd_p10: number | null; system_net_musd_p50: number | null;
+  p_everyone_warm: number | null; p_every_party_profits: number | null; abatement_usd_per_t_p50: number | null;
+}
+export interface Transport { options: TransportOption[]; best: Partial<Record<"cost-optimal" | "carbon-weighted", string>>; method: string; error?: string }
+
 export interface Bundle {
   site: SiteId;
   config: {
@@ -220,5 +229,6 @@ export interface Bundle {
   report_md?: string;
   alternatives?: Alternatives | null;
   team?: TeamOverlay | null;
+  transport?: Transport | null;
   autopilot_compare?: Record<string, { delta_mpc_minus_rules: Record<string, number>; rules: Record<string, number>; mpc: Record<string, number> }>;
 }

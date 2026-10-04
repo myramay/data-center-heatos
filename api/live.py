@@ -82,6 +82,14 @@ def _jsonable(o):
     return o
 
 
+def _transport(site: SiteId) -> dict | None:
+    try:
+        from ml.team_data import transport_options
+        return transport_options(site)
+    except Exception as e:
+        return {"error": str(e)}
+
+
 def _team(site: SiteId) -> dict | None:
     try:
         from ml.team_data import team_overlay
@@ -154,6 +162,7 @@ def bundle(site: SiteId) -> dict:
         "model_cards": providers.model_cards(),
         "alternatives": _alternatives(site),
         "team": _team(site),
+        "transport": _transport(site),
     })
 
 

@@ -1,10 +1,10 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { useBundle, useStore } from "../store";
 import { Chip } from "./bits";
 import { num, partyColor, usd } from "../lib/format";
-import type { Explanation, Physics, TreeNode } from "../frame";
+import type { Explanation, Physics, TransportOption, TreeNode } from "../frame";
 
 // ===================================================================== physics
 
@@ -461,6 +461,104 @@ export function TeamView() {
           </table>
         </div>
       )}
+    </div>
+  );
+}
+
+// ------------------------------------------------------------------ transport methods
+
+const pctOrDash = (v: number | null) => (v == null ? "–" : `${Math.round(v * 100)}%`);
+
+export function TransportView() {
+  const bundle = useBundle();
+  const T = bundle?.transport;
+  const [obj, setObj] = useState<"cost-optimal" | "carbon-weighted">("cost-optimal");
+  if (!T || !T.options) return <div className="text-[12px] text-ink-3">Run <code>make ml-models</code> then <code>.team-venv/bin/python transport_optimization.py</code> to compare transport methods.</div>;
+  const rows = T.options.filter((r) => r.objective === obj);
+  const live = rows.filter((r) => (r.connected ?? 0) > 0);
+  const best = live.find((r) => r.option === T.best[obj]);
+  const ranked = [...live].sort((a, b) => (b.system_net_musd_p50 ?? -1e9) - (a.system_net_musd_p50 ?? -1e9));
+  const dead = rows.filter((r) => !r.connected);
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-3">
+        <div className="text-[11.5px] text-ink-2">Design objective</div>
+        <div className="flex rounded-lg bg-white/5 border border-line overflow-hidden">
+          {(["cost-optimal", "carbon-weighted"] as const).map((o) => (
+            <button key={o} onClick={() => setObj(o)} className={`px-2.5 py-1 text-[11px] ${obj === o ? "bg-white/12 text-ink" : "text-ink-3 hover:text-ink-2"}`}>
+              {o === "cost-optimal" ? "Money only" : "Carbon at $190/t"}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {best && (
+        <div className="p-3 rounded-lg mb-4" style={{ background: "rgb(12 163 12 / 0.1)", border: "1px solid #0ca30c55" }}>
+          <div className="label mb-1" style={{ color: "#4ade80" }}>Most efficient way to move the heat</div>
+          <div className="text-[15px] font-semibold">{best.label}</div>
+          <div className="text-[11.5px] text-ink-2 mt-1">{best.description}</div>
+          <div className="grid grid-cols-4 gap-3 mt-3">
+            <Stat label="Net value / yr" value={`$${(best.system_net_musd_p50 ?? 0).toFixed(1)}M`} />
+            <Stat label="Cost of heat" value={`$${(best.lcoh_p50 ?? 0).toFixed(1)}`} sub={`vs $${(best.tariff_p50 ?? 0).toFixed(1)} tariff /MMBtu`} />
+            <Stat label="CO₂ avoided / yr" value={`${num(best.net_co2_t_p50 ?? 0)} t`} />
+            <Stat label="Everyone warm · all profit" value={`${pctOrDash(best.p_everyone_warm)} · ${pctOrDash(best.p_every_party_profits)}`} sub="of 1,000 futures" />
+          </div>
+        </div>
+      )}
+
+      <div className="label mb-2">Net value to the whole system · $M per year (median of 1,000 futures)</div>
+      <HBars rows={ranked.map((r) => ({ key: r.option, label: r.label, value: r.system_net_musd_p50 ?? 0, best: r.option === best?.option }))} unit="M" fmt={(v) => `$${v.toFixed(1)}`} />
+
+      <div className="label mt-5 mb-1.5">Every method, designed and stress-tested</div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-[11px]">
+          <thead>
+            <tr className="text-ink-3 text-[10px]">
+              <th className="text-left font-normal pb-1">Method</th>
+              <th className="text-right font-normal">Users</th>
+              <th className="text-right font-normal">Pipe km</th>
+              <th className="text-right font-normal">Capex</th>
+              <th className="text-right font-normal">Heat cost / tariff</th>
+              <th className="text-right font-normal">CO₂ t/yr</th>
+              <th className="text-right font-normal">P(warm)</th>
+              <th className="text-right font-normal">P(all profit)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {ranked.map((r: TransportOption) => (
+              <tr key={r.option} className="border-t border-line" style={r.option === best?.option ? { background: "rgb(12 163 12 / 0.08)" } : {}} title={r.description}>
+                <td className="py-1.5 pr-2">{r.label}</td>
+                <td className="num text-right">{num(r.connected ?? 0)}</td>
+                <td className="num text-right">{(r.pipe_km ?? 0).toFixed(1)}</td>
+                <td className="num text-right">${(r.capex_musd_p50 ?? 0).toFixed(1)}M</td>
+                <td className="num text-right" style={{ color: (r.lcoh_p50 ?? 0) <= (r.tariff_p50 ?? 0) ? "#4ade80" : "#ec835a" }}>
+                  ${(r.lcoh_p50 ?? 0).toFixed(0)} / ${(r.tariff_p50 ?? 0).toFixed(0)}
+                </td>
+                <td className="num text-right">{num(r.net_co2_t_p50 ?? 0)}</td>
+                <td className="num text-right">{pctOrDash(r.p_everyone_warm)}</td>
+                <td className="num text-right">{pctOrDash(r.p_every_party_profits)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {dead.length > 0 && (
+        <div className="text-[11px] text-ink-3 mt-2">Not viable here (no building worth connecting): {dead.map((r) => r.label).join("; ")}.</div>
+      )}
+      <div className="text-[10.5px] text-ink-3 mt-3 leading-snug">
+        Method: {T.method}. Heat cost = levelised cost of delivered heat; tariff = what buyers would pay (their current cost minus a discount).
+        Source: the team's transport_optimization.py on the trained demand / supply models.
+      </div>
+    </div>
+  );
+}
+
+function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
+  return (
+    <div>
+      <div className="text-[10px] text-ink-3">{label}</div>
+      <div className="num text-[15px]">{value}</div>
+      {sub && <div className="text-[9.5px] text-ink-3">{sub}</div>}
     </div>
   );
 }

@@ -203,3 +203,50 @@ def team_overlay(site: SiteId) -> dict | None:
         "match_scorecard": p.get("match_scorecard"), "reliability": p.get("reliability"),
         "infrastructure": infra, "transport_methods": methods,
     }
+
+
+TRANSPORT = ROOT / "outputs" / "transport" / "options_summary.csv"
+TRANSPORT_LABEL = {
+    "4gdh_hot_water": "New hot-water network (65-70 C), central heat pump",
+    "5gdh_ambient": "Ambient loop (~25 C), heat pump in each building",
+    "campus_anchor": "Hot-water mains to existing campus plants only",
+    "4gdh_local": "New hot-water network to nearby homes / schools",
+    "5gdh_local": "Ambient loop with home heat pumps",
+    "cornell_transmission": "17 km transmission main to Cornell",
+    "greenhouse_anchor": "Greenhouse / fish farm next door, heat pump to 65 C",
+    "greenhouse_direct": "Greenhouse heated directly by 45 C cooling water",
+    "mobile_storage": "Heat-battery containers by truck",
+}
+
+
+def transport_options(site: SiteId) -> dict | None:
+    """The team's transport-method comparison (transport_optimization.py): every method designed
+    cost-optimal and carbon-weighted, each stress-tested with 1,000 Monte Carlo draws."""
+    if not TRANSPORT.exists():
+        return None
+    import csv
+    key = "site1" if site == "chelsea" else "site2"
+    num = lambda v: float(v) if v not in (None, "") else None
+    rows = []
+    with TRANSPORT.open() as fh:
+        for r in csv.DictReader(fh):
+            if r["site"] != key:
+                continue
+            rows.append({"option": r["option"], "label": TRANSPORT_LABEL.get(r["option"], r["option"]),
+                         "description": r["description"], "objective": r["objective"],
+                         **{k: num(r.get(k)) for k in ("connected", "pipe_km", "heat_gwh", "dc_heat_share_p50", "capex_musd_p50",
+                                                       "lcoh_p50", "tariff_p50", "net_co2_t_p10", "net_co2_t_p50",
+                                                       "system_net_musd_p10", "system_net_musd_p50", "p_everyone_warm",
+                                                       "p_every_party_profits", "abatement_usd_per_t_p50")}})
+    ok = lambda r: (r["connected"] or 0) > 0 and r["system_net_musd_p50"] is not None
+    best = {}
+    for obj in ("cost-optimal", "carbon-weighted"):
+        cand = [r for r in rows if r["objective"] == obj and ok(r)]
+        # most efficient = highest expected system net value among designs that keep everyone warm and everyone paid
+        reliable = [r for r in cand if (r["p_everyone_warm"] or 0) >= 0.9 and (r["p_every_party_profits"] or 0) >= 0.5] or cand
+        if reliable:
+            best[obj] = max(reliable, key=lambda r: r["system_net_musd_p50"])["option"]
+    return {"options": rows, "best": best,
+            "method": "each method designed twice (carbon $0 and $190/t), then 1,000 Monte Carlo draws of weather, "
+                      "data-center output, demand, prices, costs and pipe failures; best = highest median system net value "
+                      "among designs with P(everyone warm) >= 90% and P(every party profits) >= 50%"}

@@ -20,3 +20,6 @@ outputs/models/*
 !outputs/models/site*_demand_hourly_typical_year.csv
 !outputs/models/site*_supply_hourly_typical_year.csv
 !outputs/models/demand_model_validation.txt
+!outputs/transport/
+outputs/transport/*
+!outputs/transport/options_summary.csv

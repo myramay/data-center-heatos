@@ -382,7 +382,7 @@ def simulate(site, opt_name, des, b, shapes, sup, rng, n=N_MC):
 
         # demand of the connected set this draw (weather year + demand error + anchor size)
         mult = sel['group'].map({'measured': 1 + p['demand_err_measured'],
-                                 'estimated': 1 + p['demand_err_estimated']}).fillna(1).to_numpy()
+                                 'estimated': 1 + p['demand_err_estimated']}).fillna(1).to_numpy(dtype=float, copy=True)
         if site == 'site2':
             grp = sel['group'].to_numpy()
             sp = SITE_PARAMS['site2']
