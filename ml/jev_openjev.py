@@ -7,7 +7,7 @@ also works against TypeSafe's hosted Jev or Codiv's hosted OpenJev.
     HEATOS_JEV_MODEL    model id            default jev-latest (alias every OpenJev server accepts;
                         or openjev-latest / laya-1.0 / verdict-1.4)
     HEATOS_JEV_API_KEY  bearer token        optional (Codiv / TypeSafe)
-    HEATOS_JEV_TIMEOUT  seconds             default 2.0
+    HEATOS_JEV_TIMEOUT  seconds             default 8.0 (queried in the background, never blocks the stream)
 
 If the server is unreachable or errors, get_jev_opinion returns
 available=False and the UI shows Monte Carlo only (contract behaviour).
@@ -49,15 +49,24 @@ def describe_state(state: SimState) -> str:
         f"Heat currently supplied by backup boilers: {state.backup_kw / 1000:.2f} MW.",
         f"Electricity price: ${state.electricity_price_usd_per_mwh:,.0f}/MWh.",
         f"Flexible data center compute that can be shifted: {'yes' if state.flexible_compute_available else 'no'}.",
-        f"Steam heat pumps installed: {'yes' if state.site == 'chelsea' else 'no'}.",
+        f"Steam heat pumps installed: {'yes' if _plan_has_steam_hp(state.site) else 'no'}.",
         f"Active stress events: {', '.join(s.replace('_', ' ') for s in state.active_scenarios) or 'none'}.",
     ]
     return "\n".join(lines)
 
 
+def _plan_has_steam_hp(site: str) -> bool:
+    try:
+        from engine.recommend import plan_details
+        return any(i.connect and i.option == "steam_hp" for i in plan_details(site).plan.items)
+    except Exception:
+        return site == "chelsea"
+
+
 def questions(state: SimState) -> dict:
+    steam = _plan_has_steam_hp(state.site)
     criteria = {k: v for k, v in PLAYBOOKS.items()
-                if not (k == "start_steam_hp" and state.site != "chelsea")
+                if not (k == "start_steam_hp" and not steam)
                 and not (k == "shift_compute" and not state.flexible_compute_available)
                 and not (k == "curtail_cooling_export" and state.site != "chelsea")}
     return {
@@ -75,7 +84,7 @@ class OpenJevProvider:
         self.url = (url or os.environ.get("HEATOS_JEV_URL", "http://127.0.0.1:8080")).rstrip("/")
         self.model = model or os.environ.get("HEATOS_JEV_MODEL", "jev-latest")
         self.api_key = api_key if api_key is not None else os.environ.get("HEATOS_JEV_API_KEY", "")
-        self.timeout = timeout or float(os.environ.get("HEATOS_JEV_TIMEOUT", "2.0"))
+        self.timeout = timeout or float(os.environ.get("HEATOS_JEV_TIMEOUT", "8.0"))
         self._client = httpx.Client(timeout=self.timeout)
         self._down_until = 0.0
         self.last_error: str | None = None

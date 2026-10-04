@@ -1,6 +1,6 @@
 PY := .venv/bin/python
 
-.PHONY: setup test dev api web record
+.PHONY: setup test dev demo api web record
 
 setup:
 	uv python install 3.11
@@ -20,6 +20,11 @@ web:
 # backend + frontend together (Ctrl-C stops both)
 dev:
 	@trap 'kill 0' INT TERM; .venv/bin/uvicorn api.server:app --port 8000 & (cd web && npm run dev) & wait
+
+# presentation mode: a built copy of the control room (no hot reload) + the API
+demo:
+	cd web && npm run build
+	@trap 'kill 0' INT TERM; .venv/bin/uvicorn api.server:app --port 8000 & (cd web && npx vite preview --port 5173) & wait
 
 record:
 	$(PY) -m scripts.record

@@ -4,7 +4,7 @@ import type { SiteId } from "./types";
 import { backendUp, loadBundle, startLive, startReplay, type Session } from "./lib/data";
 
 export type Step = "analyze" | "recommend" | "stress" | "deal";
-export type View = "physics" | "compare" | "money" | "guarantees" | "impact" | "framework" | "tree" | "report" | null;
+export type View = "physics" | "compare" | "team" | "money" | "guarantees" | "impact" | "framework" | "tree" | "report" | null;
 export const STEPS: { id: Step; label: string }[] = [
   { id: "analyze", label: "Analyze" },
   { id: "recommend", label: "Recommend" },
@@ -33,6 +33,9 @@ interface State {
   finished: boolean;
   toast: string | null;
   demo: { active: boolean; stage: number; hint: string | null };
+  showTeam: boolean;
+  showInfra: boolean;
+  toggleLayer(k: "showTeam" | "showInfra"): void;
 
   init(): Promise<void>;
   setSite(site: SiteId): Promise<void>;
@@ -79,6 +82,9 @@ export const useStore = create<State>((set, get) => ({
   finished: false,
   toast: null,
   demo: { active: false, stage: 0, hint: null },
+  showTeam: false,
+  showInfra: true,
+  toggleLayer: (k) => set((s) => ({ [k]: !s[k] }) as Partial<State>),
 
   async init() {
     const live = await backendUp();

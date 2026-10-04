@@ -328,11 +328,9 @@ class Simulation:
         f = self._flows(slice(h, h + 1))
         by_idx = {bid: i for i, bid in enumerate(self.net.ids)}
         buildings = []
-        for b in self.all_buildings:
+        for b in self.all_buildings:          # connected buildings only; everything else is "off"
             i = by_idx.get(b.id)
             if i is None:
-                buildings.append({"id": b.id, "delivered_kw": 0.0, "unmet_kw": 0.0, "temp_c": None,
-                                  "mode": "off", "backup_on": False})
                 continue
             frac, need = float(f.served_frac[0, i]), float(self.inp.demand_kw[h, i])
             mode = ("backup" if frac < 0.01 and need > 0 else "mixed" if frac < 0.99

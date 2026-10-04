@@ -246,3 +246,10 @@ def test_typescript_parity():
     assert set(models) == set(ts), f"model sets differ: {set(models) ^ set(ts)}"
     for name, model in models.items():
         assert set(model.model_fields) == ts[name], f"{name}: {set(model.model_fields) ^ ts[name]}"
+
+
+@pytest.mark.parametrize("site", ["chelsea", "lansing"])
+def test_every_use_type_has_a_paying_party(site):
+    from typing import get_args
+    from engine.contracts import UseType
+    assert set(get_args(UseType)) <= set(load_site(site).party_by_use_type)

@@ -171,6 +171,9 @@ party_by_use_type:
   school: commercial
   public_housing: public_housing
   clinic: guarantee_buyers
+  home: commercial
+  greenhouse: commercial
+  aquaculture: commercial
 
 guarantee_use_types: [clinic]
 guarantee_building_ids: [CH-17]   # senior housing residence

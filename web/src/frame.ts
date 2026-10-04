@@ -78,6 +78,25 @@ export interface Physics {
   balance_in_kw: number; balance_out_kw: number; balance_error: number;
 }
 
+export interface TeamOverlay {
+  site: { name?: string; subtitle?: string } | null;
+  generated_at?: string;
+  datacenter: { name?: string; heat_mw_th?: number; usable_mw_th?: number };
+  chosen: { id: string; address?: string; phase?: number; tier?: string; heat_delivered_mwh_year?: number;
+            yearly_savings_usd?: number; co2_avoided_t_year?: number; fit_score?: number }[];
+  pipes: { kind?: string; phase?: number; peak_kw_th?: number; length_m?: number; points: [number, number][] }[];
+  totals?: Record<string, number | number[]>;
+  phases?: Record<string, number | string>[];
+  comparison?: Record<string, Record<string, number>>;
+  ledger?: { parties?: Record<string, number | string | null>[]; balanced?: boolean; threshold_pct?: number };
+  robustness?: Record<string, unknown>;
+  match_scorecard?: { axis: string; headline: string; how?: string }[];
+  infrastructure: { id: string; name: string; type: string; role?: string; east: number; north: number; distance_m?: number;
+                    operator?: string; status?: string; confidence?: string; note?: string; source?: string }[];
+  transport_methods: { method_id: string; method_name: string; description: string; requires_heat_pump?: string;
+                       requires_new_pipe?: string; can_use_existing_network?: string; distance_sensitivity?: string }[];
+}
+
 export interface Alternative {
   key: string; label: string; description: string; buildings: number; heat_mwh: number; network_share: number;
   backup_hours: number; system_cost_usd_per_yr: number; co2_t_per_yr: number; co2_avoided_t_per_yr: number;
@@ -200,5 +219,6 @@ export interface Bundle {
   };
   report_md?: string;
   alternatives?: Alternatives | null;
+  team?: TeamOverlay | null;
   autopilot_compare?: Record<string, { delta_mpc_minus_rules: Record<string, number>; rules: Record<string, number>; mpc: Record<string, number> }>;
 }

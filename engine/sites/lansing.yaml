@@ -137,8 +137,11 @@ party_by_use_type:
   school: ag_schools
   clinic: ag_schools
   retail: ag_schools
+  food: ag_schools
+  office: ag_schools
   home: homes_coop
   residential: homes_coop
+  public_housing: homes_coop
 
 guarantee_use_types: [school]
 guarantee_building_ids: []

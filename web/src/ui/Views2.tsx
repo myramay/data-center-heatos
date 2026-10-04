@@ -317,3 +317,150 @@ export function WhyTreeDiagram({ ex, root }: { ex: Explanation; root: TreeNode }
     </div>
   );
 }
+
+// ===================================================================== team model
+
+const fmtVal = (k: string, v: unknown): string => {
+  if (typeof v !== "number") return String(v ?? "–");
+  if (/usd/.test(k)) return usd(v);
+  if (/utilization|share|pct/.test(k) && v <= 1.5) return `${Math.round(v * 100)}%`;
+  return num(v, v < 10 ? 2 : 0);
+};
+
+export function TeamView() {
+  const bundle = useBundle();
+  const site = useStore((s) => s.site);
+  const select = useStore((s) => s.select);
+  const T = bundle?.team;
+  if (!T) return <div className="text-[12px] text-ink-3">No team output found (run the team pipeline: <code>python optimize.py {site}</code>).</div>;
+  const ourIds = new Set(bundle!.plan.items.filter((i) => i.connect).map((i) => i.building_id));
+  const theirIds = new Set(T.chosen.map((c) => c.id));
+  const both = [...ourIds].filter((x) => theirIds.has(x));
+  const dcOurs = bundle!.config.data_center.capacity_mw_th;
+  const dcTheirs = T.datacenter.heat_mw_th;
+  const totals = T.totals ?? {};
+  const keys = ["n_buildings", "pipe_m", "heat_delivered_gwh", "co2_avoided_t", "dc_utilization", "capex_usd", "annual_value_usd", "simple_payback_years"];
+  const parties = T.ledger?.parties ?? [];
+  const rob = T.robustness as Record<string, number[] | number> | undefined;
+  return (
+    <div className="space-y-4">
+      <div className="text-[12px] text-ink-2">
+        The team's parallel model (MILP plan on real LL84/PLUTO buildings, street-routed pipes, Monte Carlo, ledger), merged in.
+        Toggle <b className="text-ink">Team plan routes</b> and <b className="text-ink">Infrastructure</b> in the legend to see it in 3D.
+        <span className="ml-2">
+          <a className="text-accent hover:underline" href={`/team/index.html${site === "lansing" ? "?site=lansing" : ""}`} target="_blank" rel="noreferrer">team map ↗</a>{" · "}
+          <a className="text-accent hover:underline" href={`/team/proposal.html?site=${site}`} target="_blank" rel="noreferrer">proposal ↗</a>{" · "}
+          <a className="text-accent hover:underline" href="/team/offer.html" target="_blank" rel="noreferrer">offers ↗</a>
+        </span>
+      </div>
+
+      {dcTheirs != null && Math.abs(dcTheirs - dcOurs) > 0.5 && (
+        <div className="p-3 rounded-lg text-[11.5px]" style={{ background: "rgb(250 178 25 / 0.08)", border: "1px solid #fab21955" }}>
+          <b className="text-warning">▲ Assumption to reconcile:</b> data center heat is <b className="num">{dcOurs} MW</b> in the control room
+          (site YAML, challenge working assumption) but <b className="num">{dcTheirs} MW</b> ({T.datacenter.usable_mw_th} MW usable) in the team model
+          (derived from the building's LL84 electricity). This is why the two plans connect different buildings.
+        </div>
+      )}
+
+      <div>
+        <div className="label mb-1.5">Plans side by side</div>
+        <div className="grid grid-cols-2 gap-3 text-[11px]">
+          {[["Control room plan", [...ourIds]], ["Team MILP plan", [...theirIds]]].map(([title, ids]) => (
+            <div key={title as string} className="p-2.5 rounded-lg border border-line">
+              <div className="text-ink font-semibold mb-1">{title as string} · {(ids as string[]).length} buildings</div>
+              {(ids as string[]).map((id) => {
+                const b = bundle!.buildings.find((x) => x.id === id);
+                return (
+                  <button key={id} onClick={() => select(id)} className="block text-left w-full truncate hover:text-ink text-ink-2">
+                    {both.includes(id) ? "● " : "○ "}{b?.name ?? id}
+                  </button>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+        <div className="text-[10.5px] text-ink-3 mt-1">● chosen by both · {both.length} in common</div>
+      </div>
+
+      <div>
+        <div className="label mb-1.5">Team plan totals</div>
+        <div className="grid grid-cols-4 gap-2 text-[11px]">
+          {keys.filter((k) => totals[k] != null).map((k) => (
+            <div key={k} className="p-2 rounded border border-line"><div className="text-ink-3 text-[10px]">{k.replace(/_/g, " ")}</div><div className="num text-ink">{fmtVal(k, totals[k])}</div></div>
+          ))}
+        </div>
+      </div>
+
+      {T.phases && T.phases.length > 0 && (
+        <div>
+          <div className="label mb-1.5">Phases</div>
+          <table className="w-full text-[11px]">
+            <thead><tr className="text-ink-3 text-[10px]"><th className="text-left font-normal">Phase</th><th className="text-right font-normal">Start</th><th className="text-right font-normal">Buildings</th><th className="text-right font-normal">Capex</th><th className="text-right font-normal">Heat GWh/yr</th><th className="text-right font-normal">CO₂ t/yr</th></tr></thead>
+            <tbody>{T.phases.map((p, i) => (
+              <tr key={i} className="border-t border-line"><td className="py-1">{String(p.label ?? p.phase)}</td><td className="num text-right">{String(p.start_year ?? "")}</td>
+                <td className="num text-right">{String(p.n_buildings ?? "")}</td><td className="num text-right">{fmtVal("capex_usd", p.capex_usd)}</td>
+                <td className="num text-right">{fmtVal("x", p.heat_delivered_gwh_year)}</td><td className="num text-right">{fmtVal("x", p.co2_avoided_t_year)}</td></tr>
+            ))}</tbody>
+          </table>
+        </div>
+      )}
+
+      {parties.length > 0 && (
+        <div>
+          <div className="label mb-1.5">Team ledger · does everyone win? {T.ledger?.balanced ? "✓ balanced" : ""}</div>
+          <table className="w-full text-[11px]">
+            <thead><tr className="text-ink-3 text-[10px]"><th className="text-left font-normal">Party</th><th className="text-right font-normal">Net / yr</th><th className="text-right font-normal">NPV</th><th className="text-right font-normal">Wins in % of scenarios</th></tr></thead>
+            <tbody>{parties.map((p, i) => (
+              <tr key={i} className="border-t border-line"><td className="py-1">{String(p.party ?? p.id)}</td>
+                <td className="num text-right">{fmtVal("usd", p.net_annual_usd)}</td><td className="num text-right">{fmtVal("usd", p.npv_usd)}</td>
+                <td className="num text-right" style={{ color: Number(p.wins_in_pct_of_scenarios) >= (T.ledger?.threshold_pct ?? 80) ? "#4ade80" : "#fab219" }}>{p.wins_in_pct_of_scenarios != null ? `${num(Number(p.wins_in_pct_of_scenarios))}%` : "–"}</td></tr>
+            ))}</tbody>
+          </table>
+        </div>
+      )}
+
+      {rob && Array.isArray(rob.value_usd_p10_p50_p90) && (
+        <div className="text-[11px]">
+          <div className="label mb-1">Team Monte Carlo · {String(rob.n_runs ?? "")} runs (p10 / p50 / p90)</div>
+          <div className="num text-ink-2">value {(rob.value_usd_p10_p50_p90 as number[]).map((v) => usd(v)).join(" / ")}
+            {Array.isArray(rob.co2_avoided_t_p10_p50_p90) && <> · CO₂ {(rob.co2_avoided_t_p10_p50_p90 as number[]).map((v) => num(v)).join(" / ")} t</>}</div>
+        </div>
+      )}
+
+      {T.match_scorecard && T.match_scorecard.length > 0 && (
+        <div>
+          <div className="label mb-1.5">Five-way match (team)</div>
+          {T.match_scorecard.map((m) => <div key={m.axis} className="text-[11px] py-0.5"><b className="text-ink">{m.axis}:</b> <span className="text-ink-2">{m.headline}</span></div>)}
+        </div>
+      )}
+
+      {T.infrastructure.length > 0 && (
+        <div>
+          <div className="label mb-1.5">Verified infrastructure nearby ({T.infrastructure.length})</div>
+          <table className="w-full text-[11px]">
+            <thead><tr className="text-ink-3 text-[10px]"><th className="text-left font-normal">Asset</th><th className="text-left font-normal">Type</th><th className="text-right font-normal">Distance</th><th className="text-left font-normal pl-2">Status</th><th className="text-left font-normal">Source</th></tr></thead>
+            <tbody>{T.infrastructure.map((a) => (
+              <tr key={a.id} className="border-t border-line" title={a.note}><td className="py-1 pr-2">{a.name}</td><td className="text-ink-2">{a.type.replace(/_/g, " ")}</td>
+                <td className="num text-right">{a.distance_m != null ? `${num(a.distance_m)} m` : "–"}</td><td className="pl-2 text-ink-2">{a.status} · {a.confidence}</td>
+                <td>{a.source ? <a className="text-accent hover:underline" href={a.source} target="_blank" rel="noreferrer">link</a> : ""}</td></tr>
+            ))}</tbody>
+          </table>
+        </div>
+      )}
+
+      {T.transport_methods.length > 0 && (
+        <div>
+          <div className="label mb-1.5">Heat transport methods considered</div>
+          <table className="w-full text-[11px]">
+            <thead><tr className="text-ink-3 text-[10px]"><th className="text-left font-normal">Method</th><th className="font-normal">Heat pump</th><th className="font-normal">New pipe</th><th className="font-normal">Existing network</th><th className="text-left font-normal">Distance sensitivity</th></tr></thead>
+            <tbody>{T.transport_methods.map((m) => (
+              <tr key={m.method_id} className="border-t border-line" title={m.description}><td className="py-1 pr-2">{m.method_name}</td>
+                <td className="text-center text-ink-2">{m.requires_heat_pump}</td><td className="text-center text-ink-2">{m.requires_new_pipe}</td>
+                <td className="text-center text-ink-2">{m.can_use_existing_network}</td><td className="text-ink-2">{m.distance_sensitivity}</td></tr>
+            ))}</tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}

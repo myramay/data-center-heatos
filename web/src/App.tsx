@@ -27,6 +27,9 @@ class SceneBoundary extends Component<{ children: ReactNode }, { failed: boolean
 
 function Legend() {
   const step = useStore((s) => s.step);
+  const showTeam = useStore((s) => s.showTeam);
+  const showInfra = useStore((s) => s.showInfra);
+  const toggle = useStore((s) => s.toggleLayer);
   const items = step === "analyze"
     ? [["#3b2a8f", "low heat use"], ["#22d3ee", ""], ["#f5a524", ""], ["#ff3b3b", "high heat use"]]
     : [["#ff7a1a", "on network heat"], ["#f7b500", "drawing on storage"], ["#e5262b", "on backup boiler"], ["#7f97b8", "not connected"], ["#f2f4f7", "other buildings"]];
@@ -36,6 +39,11 @@ function Legend() {
         <span key={i} className="flex items-center gap-1.5 text-[10.5px] text-ink-2">
           <span className="w-2.5 h-2.5 rounded-sm" style={{ background: c, border: "1px solid rgb(255 255 255 / 0.25)" }} />{l}
         </span>
+      ))}
+      {step !== "analyze" && <span className="flex items-center gap-1.5 text-[10.5px] text-ink-2"><span className="w-2.5 h-2.5 rounded-full" style={{ background: "#ffb04a", boxShadow: "0 0 6px #ffb04a" }} />heat moving</span>}
+      <span className="w-px h-4 bg-line" />
+      {([["showInfra", "Infrastructure", showInfra], ["showTeam", "Team plan routes", showTeam]] as const).map(([k, label, on]) => (
+        <button key={k} onClick={() => toggle(k)} className={`text-[10.5px] px-1.5 py-0.5 rounded border ${on ? "border-accent text-ink bg-accent/10" : "border-line text-ink-3"}`}>{label}</button>
       ))}
     </div>
   );

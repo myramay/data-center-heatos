@@ -82,6 +82,14 @@ def _jsonable(o):
     return o
 
 
+def _team(site: SiteId) -> dict | None:
+    try:
+        from ml.team_data import team_overlay
+        return team_overlay(site)
+    except Exception as e:
+        return {"error": str(e)}
+
+
 def _alternatives(site: SiteId) -> dict | None:
     """Plan-vs-alternatives comparison (a few minutes to compute): read the precomputed copy from
     recordings/ when present; `make record` refreshes it, GET /alternatives computes it live."""
@@ -145,6 +153,7 @@ def bundle(site: SiteId) -> dict:
                    "sankey": led.sankey(), "capex": led.capex},
         "model_cards": providers.model_cards(),
         "alternatives": _alternatives(site),
+        "team": _team(site),
     })
 
 

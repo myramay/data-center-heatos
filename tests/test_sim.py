@@ -158,7 +158,7 @@ def test_frame_and_state():
     sim = Simulation("chelsea", hours=12)
     sim.step()
     fr = sim.frame()
-    assert len(fr["buildings"]) == 40
+    assert len(fr["buildings"]) == sim.net.n
     assert {b["mode"] for b in fr["buildings"]} <= {"network", "storage", "mixed", "backup", "off"}
     assert fr["data_center"]["used_kw"] <= fr["data_center"]["offered_kw"] + 1e-6
     st = sim.state()

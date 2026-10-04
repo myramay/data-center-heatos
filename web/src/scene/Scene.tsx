@@ -8,6 +8,7 @@ import type { OrbitControls as OrbitImpl } from "three-stdlib";
 import { useBundle, useStore } from "../store";
 import { City } from "./City";
 import { Terrain } from "./Terrain";
+import { ArrivalPulses, HeatFlow, InfraLayer, StorageFlow, TeamLayer } from "./Flow";
 import { Floor, Plate, StudioLights } from "./Model";
 import { DataCenter, Pipes, Storage } from "./Network";
 import { Atmosphere, Snow } from "./World";
@@ -116,6 +117,11 @@ export function Scene() {
       <DataCenter />
       <Pipes />
       <Storage />
+      <HeatFlow />
+      <ArrivalPulses />
+      <StorageFlow />
+      <TeamLayer />
+      <InfraLayer />
       <Snow />
       <CameraRig />
       <Effects />

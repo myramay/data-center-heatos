@@ -76,7 +76,16 @@ class FutureSimulator(Protocol):
 # ===================================================================== REGISTRY
 # ML_TEAM_INTEGRATION: swap mocks.* for ml.* here. Nothing else changes.
 
-BUILDINGS: BuildingProvider = mocks.MockBuildingProvider()
+# Buildings: the team's real inventory (out/plan*.json) when present; HEATOS_BUILDINGS=mock for the synthetic set.
+def _buildings() -> BuildingProvider:
+    if os.environ.get("HEATOS_BUILDINGS", "team") == "team":
+        from ml import team_data
+        if team_data.available("chelsea") and team_data.available("lansing"):
+            return team_data.TeamBuildingProvider()
+    return mocks.MockBuildingProvider()
+
+
+BUILDINGS: BuildingProvider = _buildings()
 WEATHER: WeatherProvider = mocks.MockWeatherProvider()
 DEMAND: DemandProvider = mocks.MockDemandProvider(buildings=BUILDINGS, weather=WEATHER)
 SUPPLY: SupplyProvider = mocks.MockSupplyProvider()
