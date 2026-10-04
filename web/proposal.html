@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HeatOS System Proposal</title>
+<style>
+  :root { --ink: #14202b; --muted: #5d6b79; --line: #dfe5ea; --teal: #0f9d8a; --soft: #f1f6f7; --warm: #e0405c; --amber: #d99a06; --violet: #7c5cd6; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #e9edf0; color: var(--ink); font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  .bar { max-width: 900px; margin: 14px auto 0; display: flex; gap: 8px; justify-content: space-between; align-items: center; padding: 0 4px; }
+  .bar .tabs button, .bar > a, .bar > button { background: #fff; color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 7px 13px; font: inherit; font-weight: 600; cursor: pointer; text-decoration: none; }
+  .bar .tabs button.on { background: var(--ink); color: #fff; } .bar > button { background: var(--teal); color: #fff; border: 0; }
+  .doc { max-width: 900px; margin: 12px auto 40px; background: #fff; padding: 38px 46px 30px; box-shadow: 0 2px 18px rgba(0,0,0,.12); }
+  header { border-bottom: 2px solid var(--ink); padding-bottom: 10px; display: flex; justify-content: space-between; align-items: flex-end; }
+  .brand { font-weight: 800; font-size: 19px; } .brand span { color: var(--teal); }
+  h1 { font-size: 25px; line-height: 1.2; margin: 16px 0 4px; }
+  .lead { color: var(--muted); font-size: 15px; margin: 0 0 14px; }
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 14px 0 6px; }
+  .k { background: var(--soft); border-radius: 9px; padding: 9px 12px; } .k .v { font-size: 22px; font-weight: 750; font-variant-numeric: tabular-nums; } .k .l { font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+  section { margin-top: 22px; break-inside: avoid-page; }
+  h2 { font-size: 15px; margin: 0 0 6px; padding-bottom: 4px; border-bottom: 1px solid var(--line); } h2 span { color: var(--teal); margin-right: 6px; }
+  h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .7px; color: var(--muted); margin: 12px 0 4px; }
+  p { margin: 4px 0 8px; } ul { margin: 4px 0 8px; padding-left: 20px; } li { margin: 2px 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin: 4px 0 8px; }
+  th, td { text-align: left; padding: 5px 7px; border-bottom: 1px solid var(--line); vertical-align: top; } th { color: var(--muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .4px; }
+  td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; } table.facts td.n { white-space: normal; } table.facts td:first-child { width: 48%; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 22px; } .grid.wide { grid-template-columns: 1.5fr 1fr; } .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .card { background: var(--soft); border-radius: 9px; padding: 9px 12px; } .card b { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--teal); }
+  .card .hl { font-weight: 650; margin: 2px 0 3px; line-height: 1.3; } .card p { font-size: 12.5px; color: #34424f; margin: 0; }
+  .tag { display: inline-block; padding: 1px 8px; border-radius: 99px; font-size: 11px; font-weight: 650; background: #dcefec; color: #0b6a5d; } .tag.no { background: #eef0f2; color: var(--muted); } .tag.fut { background: #efe9fb; color: #5b3fb5; }
+  .note { font-size: 12px; color: var(--muted); } svg text { font: 11px -apple-system, "Segoe UI", sans-serif; fill: var(--ink); } svg .m { fill: var(--muted); }
+  .why { font-size: 12px; color: #34424f; margin: 0; padding-left: 16px; }
+  footer { margin-top: 26px; border-top: 1px solid var(--line); padding-top: 8px; font-size: 11px; color: var(--muted); }
+  #msg { max-width: 900px; margin: 30px auto; background: #fff; padding: 20px; border-radius: 10px; display: none; }
+  @media print {
+    @page { size: letter; margin: 14mm 12mm; }
+    body { background: #fff; } .bar { display: none; } .doc { box-shadow: none; margin: 0; padding: 0; max-width: none; }
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; } section { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="bar"><div class="tabs" id="tabs"></div><div><a id="mapLink" href="index.html">Open the map</a> <button id="print">Download PDF</button></div></div>
+<div id="msg"></div>
+<div class="doc" id="doc" style="display:none"></div>
+<script>
+// HeatOS system proposal: this page WRITES ITSELF from out/plan*.json, so every number traces back to the model.
+// Sections follow the brief: setting -> source -> architecture -> users -> match -> infrastructure -> operation ->
+// protection -> impact -> value and responsibility -> evidence. "Download PDF" opens the print dialog.
+const $ = id => document.getElementById(id);
+const fmt = (n, d = 0) => (n == null ? "–" : n.toLocaleString("en-US", { maximumFractionDigits: d }));
+const usd = n => (n < 0 ? "−" : "") + (Math.abs(n) >= 1e6 ? "$" + fmt(Math.abs(n) / 1e6, 1) + "M" : "$" + fmt(Math.abs(n) / 1e3, 0) + "k");
+const FILES = { chelsea: "../out/plan.json", lansing: "../out/plan_lansing.json" };
+const NAMES = { chelsea: "Chelsea · 111 8th Ave (existing)", lansing: "Lansing · Lake Hawkeye (proposed)" };
+const MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const site = new URLSearchParams(location.search).get("site") || "chelsea";
+$("tabs").innerHTML = Object.keys(FILES).map(k => `<button class="${k === site ? "on" : ""}" onclick="location.search='?site=${k}'">${NAMES[k]}</button>`).join("");
+$("mapLink").href = "index.html?site=" + site;
+$("print").onclick = () => window.print();
+fetch(FILES[site], { cache: "no-store" }).then(r => r.json()).then(render).catch(e => { $("msg").style.display = "block"; $("msg").innerHTML = "Could not load the plan: " + e + ". Run <code>python optimize.py " + site + "</code>."; });
+
+function render(p) {
+  document.title = "HeatOS system proposal · " + p.site.name;
+  const S = p.system, T = p.totals, E = S.energy, src = S.source, net = S.network, ben = p.datacenter_benefits, L = p.ledger;
+  const chosen = p.buildings.filter(b => b.chosen).sort((a, b) => b.heat_delivered_mwh_year - a.heat_delivered_mwh_year);
+  const lansing = p.site.id === "lansing", ctxItems = p.site_context[p.site.id].items;
+  const fact = cat => ctxItems.filter(i => i.cat === cat).map(i => i.metric + ": " + i.value).join("; ");
+  const direct = p.match_scorecard[0].numbers.direct_use_share;
+  const out = [];
+
+  out.push(`<header><div class="brand">Heat<span>OS</span> · System proposal</div><div class="note">${p.site.name} · ${p.site.dc_name}<br>Illustrative: prices are placeholders</div></header>
+  <h1>${lansing ? "Turn a new data center's 50 °C heat into a year-round farm and community heat loop" : "Turn a carrier hotel's waste heat into low-carbon heat for its Chelsea neighbours"}</h1>
+  <p class="lead">${fmt(T.heat_delivered_gwh, 1)} GWh of heat a year delivered to ${S.customers} customers${S.households_served ? " (" + fmt(S.households_served) + " homes)" : ""}, ${fmt(T.co2_avoided_t)} t of CO₂ avoided each year, ${fmt(100 * direct)}% of it without a heat pump, and the data center's cooling untouched.</p>
+  <div class="kpis">
+    <div class="k"><div class="v">${fmt(T.heat_delivered_gwh, 1)} GWh</div><div class="l">Heat reused per year</div></div>
+    <div class="k"><div class="v">${fmt(E.share_of_data_center_heat_reused_pct, 1)}%</div><div class="l">Of the data center's heat</div></div>
+    <div class="k"><div class="v">${fmt(100 * direct)}%</div><div class="l">Needs no heat pump</div></div>
+    <div class="k"><div class="v">${fmt(E.heat_per_kwh_of_electricity, 1)}×</div><div class="l">Heat per unit of electricity</div></div>
+    <div class="k"><div class="v">${fmt(T.co2_avoided_t)} t</div><div class="l">CO₂ avoided per year</div></div>
+    <div class="k"><div class="v">${fmt(ben.average_freed_power_mw, 1)} MW</div><div class="l">Cooling power freed</div></div>
+    <div class="k"><div class="v">${fmt(p.reliability.continuity.network_availability_pct, 2)}%</div><div class="l">Network availability</div></div>
+    <div class="k"><div class="v">${fmt(100 * p.reliability.cooling_firewall.peak_export_share_of_heat, 1)}%</div><div class="l">Peak share exported</div></div>
+  </div>`);
+
+  // 1. setting
+  out.push(`<section><h2><span>1</span>Why this setting, and why this design</h2>
+  <p><b>${p.site.dc_status === "proposed" ? "A new data center is being planned, so the heat loop can be designed in from the start." : "An existing multi-tenant data center sits among dense buildings that still burn gas, oil and steam."}</b>
+  ${lansing ? "The site is a former coal plant on an industrial parcel; customers are spread out, so the design leads with the large year-round users next to the campus." : "Heat demand is steady and close, and building owners face carbon limits (Local Law 97), so the heat has real buyers."}</p>
+  <div class="grid"><div><h3>Architecture chosen</h3><p>${net.type}</p><ul class="why">${S.architecture_why.map(x => "<li>" + x + "</li>").join("")}</ul></div>
+  <div><h3>Local context that shaped it</h3><ul class="why">
+   <li><b>Climate:</b> ${fact("Climate").split(";").slice(-1)[0]}</li><li><b>Water:</b> ${fact("Water").split(";")[0]}</li>
+   <li><b>Air:</b> ${fact("Air").split(";")[0]}</li><li><b>Community:</b> ${fact("Community").split(";")[0]}</li>${fact("Flood") ? "<li><b>Flood:</b> " + fact("Flood") + "</li>" : ""}${fact("Noise") ? "<li><b>Noise:</b> " + fact("Noise") + "</li>" : ""}</ul></div></div></section>`);
+
+  // 2. heat source
+  out.push(`<section><h2><span>2</span>Heat source: where it is captured, how hot, how much</h2>
+  <p><b>Capture point.</b> ${src.capture_point}</p>
+  <div class="grid3"><div class="card"><b>Temperature</b><div class="hl">${src.supply_c} °C out, ${src.return_c} °C back</div><p>A ${src.delta_t_k} K swing carries the heat; the cooler return water goes back to help cool the data center.</p></div>
+   <div class="card"><b>Capacity</b><div class="hl">${fmt(src.heat_made_mw, 0)} MW of heat made, ${fmt(src.exported_peak_mw, 1)} MW exported at peak</div><p>Average export ${fmt(src.exported_average_mw, 1)} MW. At the peak hour ${fmt(src.share_exported_at_peak_pct, 0)}% of the heat is exported; the rule is never more than ${fmt(100 * p.reliability.cooling_firewall.max_export_fraction)}%.</p></div>
+   <div class="card"><b>Basis</b><div class="hl">${src.heat_made_basis ? src.heat_made_basis.method.split(",")[0] : ""}</div><p>${src.heat_made_basis && src.heat_made_basis.grid_electricity_gwh_avg ? "The building bought " + src.heat_made_basis.grid_electricity_gwh_avg + " GWh of electricity a year (2022-24); about " + src.heat_made_basis.datacenter_electricity_mw + " MW goes to computers and cooling." : src.heat_made_basis ? src.heat_made_basis.facility_mw + " MW facility, PUE " + src.heat_made_basis.pue + ", " + src.heat_made_basis.it_mw + " MW of computers, " + Math.round(100 * src.heat_made_basis.capture_fraction) + "% captured by the liquid loop." : ""} To be confirmed with the operator.</p></div></div>
+  <h3>Capture options compared</h3><table><tr><th>Where the heat is taken</th><th>Typical temperature</th><th>Verdict</th><th>Why</th></tr>
+  ${S.capture_options.map(o => `<tr><td>${o.name}</td><td>${o.temp}</td><td><span class="tag ${o.verdict === "Chosen" ? "" : o.verdict === "Future upgrade" ? "fut" : "no"}">${o.verdict}</span></td><td>${o.why}</td></tr>`).join("")}</table></section>`);
+
+  // 3. architecture diagram + network facts
+  out.push(`<section><h2><span>3</span>Network architecture</h2>${archSvg(p)}
+  <div class="grid wide"><table class="facts"><tr><th>Network facts</th><th class="n"></th></tr>
+   <tr><td>Water temperature, supply / return</td><td class="n">${src.supply_c} / ${src.return_c} °C</td></tr>
+   <tr><td>Street pipe · service pipe · link to data center</td><td class="n">${fmt(net.street_pipe_km, 2)} km · ${fmt(net.service_pipe_km, 2)} km · ${fmt(net.link_to_data_center_m)} m</td></tr>
+   <tr><td>Pipe sizes (km by nominal diameter)</td><td class="n">${Object.entries(net.pipe_km_by_dn).map(([k, v]) => "DN" + k + ": " + v).join(", ")}</td></tr>
+   <tr><td>Peak flow at the data center</td><td class="n">${fmt(net.peak_flow_kg_s)} kg/s in DN${net.link_dn_mm} (${net.link_velocity_m_s} m/s)</td></tr>
+   <tr><td>Pumping: peak power · share of heat delivered</td><td class="n">${fmt(net.pump_peak_kw)} kW · ${net.pumping_pct_of_heat}%</td></tr>
+   <tr><td>Hot-water buffer store (${net.storage_hours} h of winter load)</td><td class="n">${fmt(net.storage_tank_m3)} m³</td></tr></table>
+  <div><h3>Why a low-temperature loop loses little heat</h3><p>Computed from pipe length and water temperature, heat lost through the pipe walls is <b>${net.heat_loss_computed_pct}%</b> of the heat delivered (the plan conservatively assumes ${net.heat_loss_assumed_pct}%). A conventional 80/50 °C hot-water network on the same route would lose about <b>${net.conventional_network_loss_factor}×</b> as much per metre. Pipes are sized so water speed stays within standard design limits.</p>
+  <p class="note">Method: loss = 0.2 W per metre per kelvin on both pipes × (mean water ${net.mean_water_temp_c} °C − ground). Heat-pump lift, pump power and pipe sizes are in the model; pipe data sheets will refine them.</p></div></div></section>`);
+
+  // 4. users
+  out.push(`<section><h2><span>4</span>Most suitable heat users, and why</h2>
+  <table><tr><th>Kind of customer</th><th class="n">Customers</th><th class="n">Heat (MWh/yr)</th><th class="n">Hot water</th><th class="n">No heat pump</th><th>Why it suits waste heat</th></tr>
+  ${S.users.map(u => `<tr><td><b>${u.kind}</b></td><td class="n">${u.customers}</td><td class="n">${fmt(u.heat_mwh_year)}</td><td class="n">${fmt(100 * u.hot_water_share)}%</td><td class="n">${fmt(100 * u.direct_use_share)}%</td><td>${u.why}</td></tr>`).join("")}</table>
+  <h3>The largest customers and what makes each a good match</h3>
+  <table><tr><th>Customer</th><th>Phase</th><th>Service tier</th><th class="n">Heat (MWh/yr)</th><th>Why it was chosen</th></tr>
+  ${chosen.slice(0, 7).map(b => `<tr><td><b>${b.address}</b><br><span class="note">${b.property_type || ""}${b.proposed ? " · proposed" : ""}${b.location ? " · " + b.location.direction + ", " + fmt(b.location.distance_m) + " m" : ""}</span></td><td>${b.phase} · ${b.join_year}</td><td>${b.tier.toLowerCase()}</td><td class="n">${fmt(b.heat_delivered_mwh_year)}</td><td><ul class="why">${b.why_suitable.map(w => "<li>" + w + "</li>").join("")}</ul></td></tr>`).join("")}</table>
+  <p class="note">Chosen from ${p.buildings.length} candidate customers by yearly value under the data center's hourly capacity, then ordered in three phases (fast payback, boilers near end of life, the rest; public housing and disadvantaged-community buildings rank earlier).</p></section>`);
+
+  // 5. matching
+  out.push(`<section><h2><span>5</span>Matching supply and demand: temperature, capacity, timing, seasonality, continuity</h2>
+  <div class="grid3">${p.match_scorecard.slice(0, 3).map(matchCard).join("")}</div><div class="grid" style="margin-top:10px">${p.match_scorecard.slice(3).map(matchCard).join("")}</div>
+  <h3>Month by month: heat the customers want, what the network supplies, and what the boilers cover</h3>${monthSvg(S.months)}</section>`);
+
+  // 6. infrastructure
+  const groups = [...new Set(S.bill_of_materials.map(i => i.group))];
+  out.push(`<section><h2><span>6</span>Required infrastructure</h2><table><tr><th>Where</th><th>What is built</th><th class="n">Quantity</th></tr>
+  ${S.bill_of_materials.map(i => `<tr><td>${i.group}</td><td>${i.item}</td><td class="n">${fmt(i.qty, i.unit ? 1 : 0)} ${i.unit || ""}</td></tr>`).join("")}</table>
+  <h3>Built in three phases</h3><table><tr><th>Phase</th><th>Starts</th><th class="n">Customers</th><th class="n">Street pipe</th><th class="n">Heat (GWh/yr)</th><th>Focus</th></tr>
+  ${p.phases.map(f => `<tr><td>${f.phase}</td><td>${f.start_year}</td><td class="n">${f.n_buildings}</td><td class="n">${fmt(f.main_pipe_m / 1000, 2)} km</td><td class="n">${fmt(f.heat_delivered_gwh_year, 1)}</td><td>${f.label}</td></tr>`).join("")}</table></section>`);
+
+  // 7. operating approach
+  const cf = p.reliability.cooling_firewall, ct = p.reliability.continuity;
+  out.push(`<section><h2><span>7</span>Operating approach</h2>
+  <div class="grid"><div><h3>Control rules, in priority order</h3><ol class="why" style="font-size:12.5px">
+   <li><b>Cooling first.</b> The data center's own cooling always has first call. If flow, temperature or the network fails, a bypass valve sends all heat back to its coolers in about ${cf.bypass_response_s} seconds.</li>
+   <li><b>Export limit.</b> Never more than ${fmt(100 * cf.max_export_fraction)}% of the heat leaves the building.</li>
+   <li><b>Service ladder.</b> If supply ever runs short: protected, then firm, then base, then flexible customers; the last rung is cut first and its boiler takes over.</li>
+   <li><b>Store.</b> Surplus charges the buffer store; it rides through trips of up to about ${ct.storage_hours} hours.</li>
+   <li><b>Temperature reset.</b> Each customer asks for only the temperature it needs; mild weather lowers radiator temperatures and raises the share of direct heat.</li>
+   <li><b>Backup.</b> Customers keep their boilers; they start automatically within ${ct.backup_start_minutes} minutes if the network drops.</li></ol></div>
+  <div><h3>The year in three modes</h3><table><tr><th>Mode</th><th>Months</th><th class="n">Network covers</th></tr>${modes(S.months)}</table>
+  <p class="note">Monitoring: heat meters at every customer and at the export station feed one control system, which also reports each customer's availability.</p></div></div></section>`);
+
+  // 8. protection
+  out.push(`<section><h2><span>8</span>How cooling reliability and continuity of heat are protected</h2>
+  <div class="grid"><div><h3>The data center's cooling</h3>${cf.rules.map(r => `<div class="card" style="margin-bottom:6px"><b>${r.rule}</b><p>${r.how}</p></div>`).join("")}</div>
+  <div><h3>Heat to customers</h3><div class="card"><b>Expected network availability ${fmt(ct.network_availability_pct, 2)}%</b><p>Whenever the network is down, the customer's own boiler starts by itself, so heat never stops. A store at the network head rides through short trips.</p></div>
+  <table><tr><th>Failure planned for</th><th class="n">How often</th><th class="n">How long</th></tr>
+  <tr><td>Heat source trips</td><td class="n">${ct.assumptions.dc_trips_per_year}/yr</td><td class="n">${ct.assumptions.dc_trip_hours} h</td></tr>
+  <tr><td>Break on a street pipe</td><td class="n">${ct.assumptions.pipe_failures_per_km_year}/km/yr</td><td class="n">${ct.assumptions.pipe_repair_hours} h</td></tr>
+  <tr><td>Heat pump or exchanger at one customer</td><td class="n">${ct.assumptions.hp_failures_per_year}/yr</td><td class="n">${ct.assumptions.hp_repair_hours} h</td></tr></table>
+  <p class="note">On the map, click any street pipe to see who is downstream of it and what happens if it breaks. Rates are placeholders to be replaced with the operator's and pipe maker's data.</p></div></div></section>`);
+
+  // 9. impact
+  out.push(`<section><h2><span>9</span>Environmental and community impact</h2>${sankeySvg(E)}
+  <p class="note">Reading the diagram: the data center makes ${fmt(E.data_center_heat_made_gwh)} GWh of heat a year and ${fmt(E.exported_gwh, 1)} GWh (${E.share_of_data_center_heat_reused_pct}%) leaves through the export station; the rest is rejected as usual. With ${fmt(E.heat_pump_electricity_gwh, 1)} GWh of heat-pump electricity and ${fmt(E.pumping_electricity_gwh, 2)} GWh of pumping, ${fmt(E.delivered_to_customers_gwh, 1)} GWh of heat reaches customers and replaces ${fmt(E.fuel_displaced_total_gwh, 1)} GWh of fuel.</p>
+  <div class="grid3">${p.regenerative_scorecard.map(s => `<div class="card"><b>${s.category}</b><div class="hl">${s.headline}</div><p>${s.plan_does}</p></div>`).join("")}</div>
+  <div class="grid" style="margin-top:10px"><div class="card"><b>For the data center</b><p>${fmt(ben.heat_removed_gwh_year, 1)} GWh of heat carried away; ${fmt(ben.cooling_electricity_saved_gwh_year, 1)} GWh a year of cooling electricity freed (${fmt(ben.average_freed_power_mw, 1)} MW on average, ${fmt(ben.peak_freed_power_mw, 1)} MW at peak)${p.site.id === "chelsea" ? ", which can run servers where power is scarce" : ""}; ${fmt(ben.water_saved_million_gallons_year, 1)} million gallons of cooling water saved.</p></div>
+   <div class="card"><b>For heat users and the community</b><p>${fmt(S.customers)} customers${S.households_served ? ", " + fmt(S.households_served) + " homes" : ""} on a service ladder that protects public housing and critical uses; ${fmt(T.co2_avoided_t)} t CO₂ and ${fmt(T.nox_avoided_t, 1)} t NOx avoided a year; heat priced below what customers avoid paying today.</p></div></div></section>`);
+
+  // 10. value and responsibility (compact)
+  const rows = L.parties.filter(r => !r.id.startsWith("customers_") || r.id === L.parties.find(x => x.id.startsWith("customers_")).id);
+  const ds = p.robustness && p.robustness.deal_search;
+  out.push(`<section><h2><span>10</span>Costs, risks, ownership and responsibilities</h2>
+  <table><tr><th>Party</th><th>What it does and the risk it carries</th><th class="n">Up front</th><th class="n">Net per year</th><th class="n">Wins in</th></tr>
+  ${rows.map(r => `<tr><td><b>${r.id.startsWith("customers_") ? "Heat customers" : r.party}</b></td><td>${r.responsibility}<br><span class="note">Risk: ${r.risk}</span></td><td class="n">${usd(r.pays_upfront_usd)}</td><td class="n">${usd(r.id.startsWith("customers_") ? p.ledger.parties.filter(x => x.id.startsWith("customers_")).reduce((a, x) => a + x.net_annual_usd, 0) : r.net_annual_usd)}</td><td class="n">${r.wins_in_pct_of_scenarios == null ? "–" : fmt(r.wins_in_pct_of_scenarios) + "%"}</td></tr>`).join("")}</table>
+  <p>${L.balanced ? "<b>Balanced:</b> every party has at least an " + L.threshold_pct + "% chance of coming out ahead." : "<b>Not yet balanced:</b> " + L.parties_below_threshold.join(", ") + " falls below the " + L.threshold_pct + "% bar at the base-case ownership."}
+  ${ds ? "The deal search (a short Monte Carlo at each level) finds that having others pay <b>" + fmt(100 * ds.recommended_share) + "%</b> of the street pipes makes the weakest party safest." : ""}
+  Prices, costs and failure rates are placeholders; the full ledger is in the map's "Who wins?" view.</p></section>`);
+
+  // 11. evidence
+  out.push(`<section><h2><span>11</span>Evidence and what still needs confirming</h2>
+  <div class="grid"><div><h3>Data this rests on</h3><ul class="why">${S.evidence.map(x => "<li>" + x + "</li>").join("")}</ul></div>
+  <div><h3>To confirm before any commitment</h3><ul class="why"><li>The data center's real capture point, water temperature and the share of its heat that can be taken (operator).</li>
+   <li>Pipe, heat-pump and connection costs (supplier quotes); all costs here are placeholders.</li><li>${lansing ? "That the proposed greenhouse and fish farm exist and what fuel they would otherwise use." : "The largest customer's energy data: it carries much of the heat reused."}</li>
+   <li>Failure rates and repair times (operator and pipe maker).</li><li>Local Law 97 numbers and fuel prices against current sources.</li></ul></div></div></section>
+  <footer>Generated ${new Date(p.meta.generated_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })} from the HeatOS model. ${p.meta.note}</footer>`);
+
+  $("doc").innerHTML = out.join("");
+  $("doc").style.display = "block";
+}
+
+const matchCard = m => `<div class="card"><b>${m.axis}</b><div class="hl">${m.headline}</div><p>${m.how}</p></div>`;
+
+function modes(months) {
+  const g = { Winter: [], Shoulder: [], Summer: [] };
+  months.forEach((m, i) => g[m.mode.split(":")[0]].push(i));
+  return Object.entries(g).filter(([, v]) => v.length).map(([k, v]) => {
+    const w = v.reduce((a, i) => a + months[i].heat_wanted_mwh, 0), d = v.reduce((a, i) => a + months[i].heat_delivered_mwh, 0);
+    return `<tr><td><b>${k}</b></td><td>${v.map(i => MON[i]).join(", ")}</td><td class="n">${fmt(100 * d / Math.max(w, 1))}%</td></tr>`;
+  }).join("");
+}
+
+// ---- schematic: data center -> export station -> store -> loop -> customers -> boilers
+function archSvg(p) {
+  const S = p.system, n = S.network, i = S.interfaces, s = S.source, W = 820, H = 250;
+  const box = (x, y, w, h, fill, t1, t2, t3) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="9" fill="${fill}" stroke="#14202b" stroke-opacity=".25"/>
+    <text x="${x + w / 2}" y="${y + 18}" text-anchor="middle" style="font-weight:700">${t1}</text>${t2 ? `<text x="${x + w / 2}" y="${y + 34}" text-anchor="middle" class="m">${t2}</text>` : ""}${t3 ? `<text x="${x + w / 2}" y="${y + 49}" text-anchor="middle" class="m">${t3}</text>` : ""}`;
+  const arrow = (x1, y1, x2, y2, col, dash) => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${col}" stroke-width="3" ${dash ? 'stroke-dasharray="5 4"' : ""} marker-end="url(#ah)"/>`;
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%"><defs><marker id="ah" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#14202b"/></marker></defs>
+   ${box(8, 20, 150, 80, "#fde4ea", "Data center", `${fmt(s.heat_made_mw, 0)} MW of heat made`, "own cooling plant stays 100%")}
+   ${box(8, 150, 150, 70, "#eef0f2", "Own coolers", "dry coolers / chillers", "first call, always")}
+   ${arrow(83, 150, 83, 104, "#7a8791", true)}<text x="92" y="130" class="m">bypass, ~${p.reliability.cooling_firewall.bypass_response_s} s</text>
+   ${arrow(160, 60, 214, 60, "#e0405c")}<text x="162" y="52" class="m">${s.supply_c} °C</text>
+   ${box(216, 20, 158, 80, "#fff1d6", "Export station", `plate exchanger ${fmt(s.exported_peak_mw, 1)} MW, N+1`, `pumps ${fmt(n.pump_peak_kw)} kW`)}
+   ${arrow(376, 60, 424, 60, "#e0405c")}
+   ${box(426, 20, 130, 80, "#dff1ee", "Buffer store", `${fmt(n.storage_tank_m3)} m³`, `${n.storage_hours} h of winter load`)}
+   ${arrow(558, 60, 612, 60, "#0f9d8a")}
+   <text x="560" y="40" class="m">${s.supply_c} / ${s.return_c} °C loop</text>
+   <path d="M 612 60 L 650 60 M 650 25 L 650 140 M 650 25 L 690 25 M 650 82 L 690 82 M 650 140 L 690 140" stroke="#0f9d8a" stroke-width="4" fill="none"/>
+   <text x="560" y="116" class="m">${fmt(n.street_pipe_km, 1)} km street pipe</text><text x="560" y="130" class="m">${Object.keys(n.pipe_km_by_dn).length ? "DN" + Object.keys(n.pipe_km_by_dn)[0] + " to DN" + Object.keys(n.pipe_km_by_dn).slice(-1)[0] : ""}</text>
+   ${box(692, 4, 120, 44, i.direct_exchanger.n ? "#e6f4e6" : "#f5f5f5", "Direct heat exchangers", i.direct_exchanger.n ? i.direct_exchanger.n + " customers, " + fmt(i.direct_exchanger.kw_th) + " kW" : "none: " + s.supply_c + " °C is too cool", "")}
+   ${box(692, 60, 120, 44, "#e8eefb", "Heat pumps", i.heat_pump.n + " customers, " + fmt(i.heat_pump.kw_th) + " kW", "")}
+   ${box(692, 116, 120, 44, "#eef0f2", "Customer boilers", "kept as backup, auto-start", "")}
+   <path d="M 692 175 L 612 175 L 612 200 L 380 200" stroke="#0f9d8a" stroke-width="3" fill="none" stroke-dasharray="6 4" marker-end="url(#ah)"/>
+   <text x="400" y="218" class="m">cooler return water (${s.return_c} °C) flows back to the data center</text></svg>`;
+}
+
+// ---- monthly stack: delivered heat + boiler share = heat wanted
+function monthSvg(months) {
+  const W = 820, H = 200, pad = 36, bw = (W - pad * 2) / 12, max = Math.max(...months.map(m => m.heat_wanted_mwh), 1);
+  const y = v => 150 - 130 * v / max;
+  const bars = months.map((m, k) => {
+    const x = pad + k * bw + 6, w = bw - 12, d = m.heat_delivered_mwh, b = Math.max(m.heat_wanted_mwh - d, 0);
+    return `<rect x="${x}" y="${y(d)}" width="${w}" height="${150 - y(d)}" fill="#0f9d8a"/><rect x="${x}" y="${y(d + b)}" width="${w}" height="${y(d) - y(d + b)}" fill="#c4cdd4"/>
+    <text x="${x + w / 2}" y="168" text-anchor="middle" class="m">${MON[k]}</text><text x="${x + w / 2}" y="182" text-anchor="middle" class="m" style="font-size:9.5px">${m.network_covers_pct}%</text>`;
+  }).join("");
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%">${bars}<text x="${pad}" y="14" class="m">MWh of heat per month. Teal: supplied by the network. Grey: covered by customers' boilers. Percent: share the network covers.</text></svg>`;
+}
+
+// ---- where the energy goes (GWh per year): tapered bands, widths proportional to energy
+function sankeySvg(E) {
+  const W = 820, H = 230, top = 24, hh = 170, nodeW = 14;
+  const inputs = [["Heat exported from the data center", E.exported_gwh, "#e0405c"], ["Electricity (heat pumps and pumps)", E.heat_pump_electricity_gwh + E.pumping_electricity_gwh, "#d99a06"]];
+  let fuels = Object.entries(E.fuel_displaced_gwh); const F = fuels.reduce((a, [, v]) => a + v, 0) || 1;
+  const small = fuels.filter(([, v]) => v / F < 0.06), big = fuels.filter(([, v]) => v / F >= 0.06);
+  if (small.length > 1 || (small.length === 1 && big.length)) fuels = big.concat([["other", small.reduce((a, [, v]) => a + v, 0)]]);
+  const colors = { other: "#b08968", gas: "#7c5cd6", propane: "#5aa9ff", oil2: "#8a5a3c", oil4: "#8a5a3c", oil56: "#8a5a3c", steam: "#9aa5b1", elec_heat: "#d99a06" };
+  const names = { other: "Gas and oil", gas: "Natural gas", propane: "Propane", oil2: "Heating oil", oil4: "Heating oil", oil56: "Heating oil", steam: "Steam", elec_heat: "Electric heat" };
+  const sIn = inputs.reduce((a, [, v]) => a + v, 0), D = E.delivered_to_customers_gwh, Lss = E.network_loss_gwh;
+  const sc = hh / Math.max(sIn, D + Lss, F);
+  let svg = "", y = top;
+  const band = (x1, a1, b1, x2, a2, b2, col) => { const mx = (x1 + x2) / 2; svg += `<path d="M${x1},${a1} C${mx},${a1} ${mx},${a2} ${x2},${a2} L${x2},${b2} C${mx},${b2} ${mx},${b1} ${x1},${b1} Z" fill="${col}" opacity=".35"/>`; };
+  // column 1 -> column 2
+  const x1 = 200, x2 = 430, x3 = 660;
+  let y1 = top, yD = top, yL = top + (D) * sc + 14;
+  inputs.forEach(([name, v, col], k) => {
+    const h = v * sc; svg += `<rect x="${x1 - nodeW}" y="${y1}" width="${nodeW}" height="${h}" fill="${col}"/><text x="${x1 - nodeW - 6}" y="${y1 + Math.max(h / 2, 6) + 4}" text-anchor="end">${name}</text><text x="${x1 - nodeW - 6}" y="${y1 + Math.max(h / 2, 6) + 18}" text-anchor="end" class="m">${fmt(v, 1)} GWh</text>`;
+    const toD = k === 0 ? Math.max(v - Lss, 0) : v, toL = k === 0 ? Math.min(Lss, v) : 0;
+    band(x1, y1, y1 + toD * sc, x2 - nodeW, yD, yD + toD * sc, col); yD += toD * sc;
+    if (toL > 0) { band(x1, y1 + toD * sc, y1 + h, x2 - nodeW, yL, yL + toL * sc, col); yL += toL * sc; }
+    y1 += h + 14;
+  });
+  svg += `<rect x="${x2 - nodeW}" y="${top}" width="${nodeW}" height="${D * sc}" fill="#0f9d8a"/><text x="${x2 + 6}" y="${top + 14}">Heat delivered to customers</text><text x="${x2 + 6}" y="${top + 28}" class="m">${fmt(D, 1)} GWh</text>`;
+  const yl0 = top + D * sc + 14; svg += `<rect x="${x2 - nodeW}" y="${yl0}" width="${Math.max(Lss * sc, 2)}" height="${Math.max(Lss * sc, 2)}" fill="#9aa5b1" opacity="0"/>`;
+  // column 2 -> column 3 (fuel not burned; tapered because boilers waste some fuel as flue heat)
+  let ya = top, yb = top;
+  fuels.forEach(([f, v]) => {
+    const hD = D * sc * (v / F), hF = v * sc;
+    band(x2, ya, ya + hD, x3 - nodeW, yb, yb + hF, colors[f] || "#999");
+    svg += `<rect x="${x3 - nodeW}" y="${yb}" width="${nodeW}" height="${hF}" fill="${colors[f] || "#999"}"/><text x="${x3 + 6}" y="${yb + Math.max(hF / 2, 6) + 4}">${names[f] || f} no longer burned</text><text x="${x3 + 6}" y="${yb + Math.max(hF / 2, 6) + 18}" class="m">${fmt(v, 1)} GWh of fuel</text>`;
+    ya += hD; yb += hF + 6;
+  });
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%">${svg}<text x="8" y="${H - 6}" class="m">Band width is proportional to energy (GWh a year). Boilers waste some fuel as flue heat, so each unit of heat delivered replaces more than one unit of fuel.</text></svg>`;
+}
+</script>
+</body>
+</html>

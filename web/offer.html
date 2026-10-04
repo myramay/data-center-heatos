@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HeatOS Heat Offer</title>
+<style>
+  :root { --ink: #14202b; --muted: #5d6b79; --line: #dfe5ea; --teal: #0f9d8a; --soft: #f3f7f8;
+          --p1: #0f9d8a; --p2: #d99a06; --p3: #7c5cd6; --red: #d6455d; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #e9edf0; color: var(--ink);
+         font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  .bar { max-width: 816px; margin: 16px auto 0; display: flex; justify-content: space-between; gap: 8px; padding: 0 4px; }
+  .bar button, .bar a { background: var(--teal); color: #fff; border: 0; border-radius: 8px; padding: 8px 14px;
+         font: inherit; font-weight: 600; cursor: pointer; text-decoration: none; }
+  .bar a { background: #fff; color: var(--ink); border: 1px solid var(--line); }
+
+  /* The offer is ONE letter-size page. */
+  .page { width: 816px; min-height: 1056px; margin: 12px auto 40px; background: #fff; padding: 36px 48px 36px;
+          box-shadow: 0 2px 18px rgba(0,0,0,.12); position: relative; }
+  header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid var(--ink); padding-bottom: 12px; }
+  .brand { font-weight: 800; font-size: 20px; letter-spacing: .3px; } .brand span { color: var(--teal); }
+  .tag { color: var(--muted); font-size: 12px; text-align: right; }
+  h1 { font-size: 24px; margin: 18px 0 2px; line-height: 1.2; }
+  .addr { color: var(--muted); margin-bottom: 14px; }
+  .hero { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 8px 0 8px; }
+  .big { background: var(--soft); border-radius: 10px; padding: 9px 13px; }
+  .big .v { font-size: 24px; font-weight: 750; font-variant-numeric: tabular-nums; }
+  .big .l { font-size: 11px; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); margin: 13px 0 5px; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 28px; }
+  table { width: 100%; border-collapse: collapse; }
+  td { padding: 5px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+  td:last-child { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; padding-left: 10px; }
+  td small { display: block; color: var(--muted); }
+  .win td:last-child { font-weight: 700; color: var(--teal); }
+  .phase { display: flex; align-items: center; gap: 0; margin: 6px 0 4px; }
+  .dot { width: 26px; height: 26px; border-radius: 50%; background: #d4dbe1; color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 12px; }
+  .line { flex: 1; height: 3px; background: #d4dbe1; }
+  .dot.on { background: var(--c); } .line.on { background: var(--c); }
+  .why { color: var(--muted); font-size: 13px; }
+  .banner { background: #fff6e0; border: 1px solid #f0d58a; border-radius: 8px; padding: 6px 10px; margin: 6px 0; font-size: 12px; }
+  .fit { display: flex; align-items: center; gap: 8px; font-size: 12px; margin: 3px 0; }
+  .fit span { width: 82px; color: var(--muted); text-transform: capitalize; }
+  .fb { flex: 1; height: 7px; background: #e6ebef; border-radius: 4px; overflow: hidden; }
+  .fb i { display: block; height: 100%; background: var(--teal); }
+  .fit b { width: 26px; text-align: right; font-variant-numeric: tabular-nums; }
+  svg text { font: 11px -apple-system, "Segoe UI", sans-serif; fill: var(--muted); }
+  footer { position: absolute; left: 48px; right: 48px; bottom: 24px; border-top: 1px solid var(--line); padding-top: 8px;
+           color: var(--muted); font-size: 11px; }
+  #msg { max-width: 816px; margin: 40px auto; padding: 20px; background: #fff; border-radius: 10px; display: none; }
+
+  @media print {
+    @page { size: letter; margin: 0; }
+    body { background: #fff; }
+    .bar { display: none; }
+    .page { box-shadow: none; margin: 0; width: 100%; height: 100vh; min-height: 0; }
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+<div class="bar"><a href="index.html">← Back to map</a><button id="pdf">Download PDF</button></div>
+<div id="msg"></div>
+<div class="page" id="page" style="display:none"></div>
+
+<script>
+// One-page heat offer for one building. URL: offer.html?bbl=1007390001
+// Reads ../out/plan.json (see SCHEMA.md). "Download PDF" opens the print dialog -> Save as PDF
+// (vector text, one letter page; the screen buttons are hidden by the print stylesheet).
+const $ = id => document.getElementById(id);
+const fmt = (n, d = 0) => n.toLocaleString("en-US", { maximumFractionDigits: d });
+const usd = n => (n < 0 ? "-$" : "$") + fmt(Math.abs(n));
+const MONTHS = ["J","F","M","A","M","J","J","A","S","O","N","D"];
+const PHASE = { 1: ["Fast payback", "var(--p1)"], 2: ["Boiler near end of life", "var(--p2)"], 3: ["Fill in the rest", "var(--p3)"] };
+const cents = perMMBtu => fmt(perMMBtu * 0.003412 * 100, 1);    // $/MMBtu -> cents per kWh of heat
+
+const SITE = new URLSearchParams(location.search).get("site") || "chelsea";
+document.querySelector(".bar a").href = "index.html?site=" + SITE;
+fetch(SITE === "lansing" ? "../out/plan_lansing.json" : "../out/plan.json", { cache: "no-store" }).then(r => r.json()).then(show).catch(e => msg("Could not load <code>out/plan.json</code>: " + e));
+
+function msg(html) { $("msg").style.display = "block"; $("msg").innerHTML = html; }
+
+function show(plan) {
+  const bbl = +new URLSearchParams(location.search).get("bbl");
+  const b = plan.buildings.find(x => x.bbl === bbl);
+  if (!b) return msg("No building with BBL " + bbl + ". Open an offer from the map.");
+  if (!b.chosen) return msg("<b>" + b.address + "</b> is not part of the HeatOS plan (too small, no data, or not profitable to connect), so there is no offer.");
+
+  document.title = "HeatOS offer - " + b.address;
+  const ph = plan.phases[b.phase - 1], e = b.equipment, price = b.price_heatos_usd_per_mmbtu, chel = plan.site.id === "chelsea";
+  const est = b.data_quality === "estimated";
+  const why = b.phase === 1 ? "Among the fastest paybacks in the plan" + (b.public_housing ? ", with extra priority because this is public housing." : ".") :
+    b.phase === 2 ? "Its boiler is due for replacement in about " + fmt(b.boiler_years_left, 0) + " years, so connecting now avoids buying a new one." :
+    "It joins once the street pipes are already in place nearby.";
+  const phaseBar = [1, 2, 3].map(i => (i > 1 ? "<div class='line" + (i <= b.phase ? " on" : "") + "' style='--c:" + PHASE[b.phase][1] + "'></div>" : "") +
+    "<div class='dot" + (i <= b.phase ? " on" : "") + "' style='--c:" + PHASE[b.phase][1] + "'>" + i + "</div>").join("");
+
+  $("page").innerHTML = `
+  <header><div class="brand">Heat<span>OS</span></div>
+    <div class="tag">Heat offer · ${new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}<br>Illustrative: costs are placeholders</div></header>
+
+  <h1>Warm water from the data center next door, for less</h1>
+  <div class="addr">${b.address}, New York · ${b.property_type || "Building"}${b.year_built ? " · built " + b.year_built : ""} · ${fmt(b.floor_area_ft2)} ft²</div>
+  ${b.proposed ? "<div class='banner'><b>Proposed new customer.</b> This business does not exist yet. The cheap local heat is what makes it possible, so all numbers are planning estimates to be confirmed with the grower.</div>" : est ? "<div class='banner'><b>Estimated usage.</b> This customer has " + plan.site.estimated_note + ". We will confirm with 12 months of bills before signing.</div>" : ""}
+
+  <div class="hero">
+    <div class="big"><div class="v">${usd(b.yearly_savings_usd)}</div><div class="l">Yearly savings</div></div>
+    <div class="big"><div class="v">${b.payback_years ? fmt(b.payback_years, 1) + " yr" : "n/a"}</div><div class="l">Payback on our investment</div></div>
+    ${chel ? `<div class="big"><div class="v">${usd(b.ll97_fines_avoided_usd_year)}</div><div class="l">LL97 fines avoided / yr</div></div>` : `<div class="big"><div class="v">${fmt(b.co2_avoided_t_year)} t</div><div class="l">CO₂ avoided / yr</div></div>`}
+  </div>
+
+  <h2>When you join</h2>
+  <div class="phase">${phaseBar}</div>
+  <div><b>Phase ${b.phase} · ${PHASE[b.phase][0]} · ${b.join_year}</b> &nbsp;<span class="why">${why}</span></div>
+
+  <div class="cols">
+   <div>
+    <h2>Price per unit of heat</h2>
+    <table>
+      <tr><td>You pay today (fuel only)</td><td>$${fmt(b.price_now_usd_per_mmbtu, 1)} / MMBtu<small>${cents(b.price_now_usd_per_mmbtu)}¢ per kWh of heat</small></td></tr>
+      ${chel ? `<tr><td>Today incl. LL97 fines</td><td>$${fmt(b.price_now_all_in_usd_per_mmbtu, 1)} / MMBtu<small>${cents(b.price_now_all_in_usd_per_mmbtu)}¢ per kWh</small></td></tr>` : ""}
+      <tr class="win"><td>HeatOS price</td><td>$${fmt(price, 1)} / MMBtu<small>${cents(price)}¢ per kWh</small></td></tr>
+    </table>
+    <h2>Your yearly money</h2>
+    <table>
+      <tr><td>Fuel you stop buying</td><td>${usd(b.fuel_avoided_usd_year)}</td></tr>
+      ${chel ? `<tr><td>LL97 fines avoided</td><td>${usd(b.ll97_fines_avoided_usd_year)}</td></tr>` : ""}
+      <tr><td>HeatOS heat charge</td><td>-${usd(b.heatos_charge_usd_year)}</td></tr>
+      <tr class="win"><td>Net yearly savings</td><td>${usd(b.yearly_savings_usd)}</td></tr>
+    </table>
+    <div class="why" style="margin-top:6px">Your upfront cost: <b>$0</b>. HeatOS pays for and owns the equipment; you pay only for heat used.</div>
+   </div>
+   <div>
+    <h2>Equipment we install</h2>
+    <table>
+      <tr><td>Heat pump</td><td>${fmt(e.heat_pump_kw_th)} kW</td></tr>
+      <tr><td>Heat exchanger + controls</td><td>${fmt(e.heat_exchanger_kw_th)} kW</td></tr>
+      <tr><td>Street-to-building pipe</td><td>${fmt(e.lateral_pipe_m)} m</td></tr>
+      <tr><td>Heat meter and monitoring</td><td>1</td></tr>
+      <tr><td>Your boiler</td><td>stays as backup</td></tr>
+      <tr><td>Our capital for your building</td><td>${usd(b.capex_attributed_usd)}</td></tr>
+    </table>
+    <h2>${chel ? "Carbon and LL97" : "Carbon"}</h2>
+    ${chel ? emissionsChart(b) : `<div class="why">Burning fuel today puts about <b>${fmt(b.emissions_before_t)} t</b> of CO₂ a year into the air from this customer. Moving to captured server heat avoids <b>${fmt(b.co2_avoided_t_year)} t</b> a year.</div>`}
+   </div>
+  </div>
+
+  <div class="cols">
+   <div>
+    <h2>Heat we deliver each month (MWh) · ${fmt(b.heat_delivered_mwh_year)} a year</h2>
+    ${monthChart(b.heat_delivered_mwh_month)}
+   </div>
+   <div>
+    <h2>Your service tier: ${b.tier.toLowerCase()}</h2>
+    <div class="why" style="margin-bottom:6px">${b.tier_note} Price adjustment for this tier: ${b.tier_price_adjust > 0 ? "+" : ""}${fmt(100 * b.tier_price_adjust)}%.</div>
+    ${["temperature", "timing", "seasonality", "capacity"].map(k => `<div class="fit"><span>${k}</span><div class="fb"><i style="width:${Math.round(100 * b.fit[k])}%"></i></div><b>${fmt(100 * b.fit[k])}</b></div>`).join("")}
+    <div class="why">Heat fit score <b>${fmt(b.fit.score)} / 100</b>: how well your heat use matches the data center's steady supply.<br>
+      <b>${fmt(100 * b.temperature_match.direct_use_share)}%</b> of your heat needs no heat pump · network availability <b>${fmt(b.reliability.availability_pct, 2)}%</b>, with your own boiler as backup.</div>
+   </div>
+  </div>
+
+  <footer>${b.selection_frequency != null ? "In " + fmt(100 * b.selection_frequency) + "% of " + plan.robustness.n_runs + " price and cost scenarios this building stays in the plan. " : ""}
+   Payback = our capital for this building (equipment, lateral pipe and its share of shared street pipe) divided by the yearly cash margin on its heat.
+   ${est ? "Usage is estimated. " : "Usage from NYC Local Law 84 benchmarking. "}All cost inputs are placeholders until replaced with quotes. Not a binding offer.</footer>`;
+  $("page").style.display = "block";
+  $("pdf").onclick = () => window.print();
+}
+
+// bars: yearly emissions today vs after, with the LL97 limit as a line
+function emissionsChart(b) {
+  const max = Math.max(b.emissions_before_t, b.ll97_limit_t, 1) * 1.1, W = 330, x = v => 4 + (W - 8) * v / max;
+  const bar = (y, v, c, label) => `<rect x="4" y="${y}" width="${x(v) - 4}" height="16" rx="3" fill="${c}"/>
+    <text x="${x(v) + 4}" y="${y + 12}">${label}</text>`;
+  return `<svg viewBox="0 0 ${W + 70} 84" width="100%">
+    ${bar(4, b.emissions_before_t, "#c4cdd4", "Today " + fmt(b.emissions_before_t) + " t")}
+    ${bar(28, b.emissions_after_t, "var(--teal)", "With HeatOS " + fmt(b.emissions_after_t) + " t")}
+    <line x1="${x(b.ll97_limit_t)}" x2="${x(b.ll97_limit_t)}" y1="0" y2="56" stroke="#d6455d" stroke-dasharray="4 3" stroke-width="2"/>
+    <text x="${x(b.ll97_limit_t) + 4}" y="68" style="fill:#d6455d">LL97 limit ${fmt(b.ll97_limit_t)} t/yr</text>
+    <text x="4" y="82">CO₂e per year · fines avoided: ${usd(b.ll97_fines_avoided_usd_year)}/yr</text></svg>`;
+}
+
+function monthChart(v) {
+  const W = 340, H = 96, bw = W / 12, max = Math.max(...v, 1);
+  return `<svg viewBox="0 0 ${W} ${H + 18}" width="100%">` + v.map((m, i) => {
+    const h = (H - 18) * m / max;
+    return `<rect x="${i * bw + 6}" y="${H - h}" width="${bw - 12}" height="${h}" rx="3" fill="${i >= 5 && i <= 7 ? "#7fcfc4" : "var(--teal)"}"/>
+      <text x="${i * bw + bw / 2}" y="${H - h - 3}" text-anchor="middle" style="font-size:8.5px">${fmt(m, m < 10 ? 1 : 0)}</text>
+      <text x="${i * bw + bw / 2}" y="${H + 13}" text-anchor="middle">${MONTHS[i]}</text>`;
+  }).join("") + "</svg>";
+}
+</script>
+</body>
+</html>

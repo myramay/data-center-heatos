@@ -1,16 +1,587 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>HeatOS Control Room</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%2305070d'/><path d='M16 5c3 5 8 8 8 14a8 8 0 0 1-16 0c0-4 2-6 4-8 0 3 1 5 3 5-1-4 0-8 1-11z' fill='%23ff8a3d'/></svg>" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HeatOS Build Plan</title>
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.css">
+<style>
+  :root {
+    --bg: #0d1117; --panel: rgba(16,22,30,.94); --line: rgba(255,255,255,.10);
+    --text: #e6edf3; --muted: #8b98a8;
+    --p1: #2dd4bf; --p2: #fbbf24; --p3: #a78bfa; --dc: #ff4d6d;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
+    font: 14px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  #map { position: absolute; inset: 0; }
+  .panel { position: absolute; background: var(--panel); border: 1px solid var(--line);
+    border-radius: 12px; backdrop-filter: blur(10px); padding: 14px 16px; z-index: 10; }
+  h1 { font-size: 17px; margin: 0 0 2px; letter-spacing: .2px; }
+  .sub { color: var(--muted); font-size: 12px; margin-bottom: 12px; }
+  .muted { color: var(--muted); }
+
+  /* totals (left) */
+  #totals { top: 16px; left: 16px; width: 280px; }
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; }
+  .stat .v { font-size: 20px; font-weight: 650; font-variant-numeric: tabular-nums; }
+  .stat .l { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; }
+  .legend { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line);
+    display: grid; gap: 5px; font-size: 12px; }
+  .sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 7px; vertical-align: -1px; }
+
+  /* controls (bottom) */
+  #controls { left: 50%; transform: translateX(-50%); bottom: 16px; width: min(760px, calc(100% - 32px));
+    display: grid; grid-template-columns: 1fr 1fr; gap: 14px 28px; }
+  .ctl label { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  .ctl label b { color: var(--text); font-weight: 600; }
+  input[type=range] { width: 100%; accent-color: var(--p1); }
+  .ticks { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-top: 2px; }
+  button { background: rgba(255,255,255,.07); color: var(--text); border: 1px solid var(--line);
+    border-radius: 7px; padding: 4px 10px; font: inherit; font-size: 12px; cursor: pointer; }
+  button:hover { background: rgba(255,255,255,.14); }
+  .chips { display: flex; gap: 6px; margin-top: 6px; }
+
+  /* right column: month chart, waterfall, building card (scrolls if tall) */
+  #right { position: absolute; top: 16px; right: 16px; width: 310px; max-height: calc(100% - 200px); overflow-y: auto;
+    display: flex; flex-direction: column; gap: 10px; z-index: 10; scrollbar-width: thin; }
+  #right .panel { position: static; }
+  .tierdot { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 5px; }
+  #wfScen { display: flex; gap: 5px; flex-wrap: wrap; margin: 8px 0 4px; }
+  #wfScen button.on { background: var(--text); color: #0d1117; }
+  #wfShare { font-size: 11.5px; line-height: 1.6; margin-top: 4px; }
+  .fitrow { display: flex; align-items: center; gap: 6px; font-size: 11.5px; margin: 2px 0; }
+  .fitrow span:first-child { width: 78px; color: var(--muted); }
+  .fitbar { flex: 1; height: 6px; background: rgba(255,255,255,.1); border-radius: 3px; overflow: hidden; }
+  .fitbar i { display: block; height: 100%; background: var(--p1); }
+  /* monthly chart (right) */
+  #months { }
+  #bars { display: flex; align-items: flex-end; gap: 4px; height: 90px; margin: 10px 0 4px; }
+  .bar { flex: 1; position: relative; height: 100%; background: rgba(255,255,255,.06); border-radius: 3px; overflow: hidden; }
+  .bar i { position: absolute; left: 0; right: 0; bottom: 0; background: var(--p1); opacity: .55; transition: height .3s; }
+  .bar.sel i { opacity: 1; }
+  .bar.sel { outline: 1px solid var(--text); }
+  .mlabels { display: flex; gap: 4px; font-size: 10px; color: var(--muted); text-align: center; }
+  .mlabels span { flex: 1; }
+  #monthTxt { font-size: 12px; margin-top: 8px; }
+
+  /* building card (right, below chart) */
+  #card { display: none; }
+  #card h2 { margin: 0 0 2px; font-size: 15px; }
+  #card table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 12.5px; }
+  #card td { padding: 3px 0; border-bottom: 1px solid var(--line); }
+  #card td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+  #card .x { position: absolute; top: 8px; right: 10px; cursor: pointer; color: var(--muted); }
+  #offerBtn { display: block; margin-top: 10px; padding: 8px; background: var(--p1); color: #04201c; border-radius: 7px;
+    text-align: center; text-decoration: none; font-weight: 650; }
+  .risk { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); font-size: 12px; }
+  .risk b { font-weight: 600; } .risk div { margin-bottom: 4px; }
+  .badge { display: inline-block; padding: 1px 7px; border-radius: 99px; font-size: 11px; font-weight: 600; color: #0d1117; }
+
+  /* Local fit modal */
+  #localBtn, #ledgerBtn, #relBtn { background: var(--p1); color: #04201c; border: 0; font-weight: 650; padding: 5px 10px; }
+  #ledgerBtn { background: #fbbf24; } #relBtn { background: #a78bfa; }
+  #modal { position: fixed; inset: 0; background: rgba(5,8,12,.78); z-index: 50; display: none; padding: 4vh 16px; overflow-y: auto; }
+  #modalBox { max-width: 980px; margin: 0 auto; background: #10161e; border: 1px solid var(--line); border-radius: 14px; padding: 20px 22px 26px; position: relative; }
+  #modalX { position: absolute; top: 12px; right: 16px; cursor: pointer; font-size: 18px; color: var(--muted); }
+  .tabs { display: flex; gap: 6px; margin: 8px 0 14px; } .tabs button.on { background: var(--text); color: #0d1117; }
+  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 12px; }
+  .sc { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; background: rgba(255,255,255,.03); }
+  .sc .cat { font-size: 11px; text-transform: uppercase; letter-spacing: .7px; color: var(--p1); font-weight: 650; }
+  .sc .hl { font-size: 15px; font-weight: 650; margin: 3px 0 8px; line-height: 1.3; }
+  .sc .lbl { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-top: 6px; }
+  .sc p { margin: 2px 0 0; font-size: 12.5px; }
+  #modal table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin: 6px 0 10px; }
+  #modal th, #modal td { text-align: right; padding: 5px 6px; border-bottom: 1px solid var(--line); }
+  #modal th:first-child, #modal td:first-child { text-align: left; }
+  #modal th { color: var(--muted); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: .4px; }
+  #modal h3 { margin: 18px 0 4px; font-size: 14px; }
+  .ctxrow { display: grid; grid-template-columns: 90px 1fr 1.7fr; gap: 8px; font-size: 12px; padding: 4px 0; border-bottom: 1px solid var(--line); }
+  #err { position: absolute; top: 40%; left: 50%; transform: translateX(-50%); display: none; max-width: 420px; }
+
+  @media (max-width: 900px) {
+    #totals { width: calc(100% - 32px); }
+    #right { top: auto; bottom: 150px; width: calc(100% - 32px); max-height: 40%; }
+    #controls { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div id="map"></div>
+
+<div id="totals" class="panel">
+  <h1 id="siteTitle">HeatOS build plan</h1>
+  <div class="tabs" id="siteTabs" style="margin:6px 0 8px"></div>
+  <div class="sub" id="siteSub"></div>
+  <a id="sysBtn" href="proposal.html" style="display:block;text-align:center;background:#e6edf3;color:#0d1117;font-weight:700;border-radius:8px;padding:8px;margin:0 0 8px;text-decoration:none">System proposal: how the heat is reused →</a>
+  <div class="chips" style="flex-wrap:wrap;margin:0 0 10px"><button id="localBtn">Local fit and climate</button><button id="ledgerBtn">Who wins?</button><button id="relBtn">Reliability and match</button></div>
+  <div class="stats">
+    <div class="stat"><div class="v" id="sBuildings">0</div><div class="l">Customers</div></div>
+    <div class="stat"><div class="v" id="sHeat">0</div><div class="l">Heat reused / yr</div></div>
+    <div class="stat"><div class="v" id="sShare">0%</div><div class="l">Of the data center's heat</div></div>
+    <div class="stat"><div class="v" id="sDirect">0%</div><div class="l">Needs no heat pump</div></div>
+    <div class="stat"><div class="v" id="sCo2">0</div><div class="l">CO₂ avoided / yr</div></div>
+    <div class="stat"><div class="v" id="sPipe">0 km</div><div class="l">Pipe length</div></div>
+  </div>
+  <div class="muted" id="sMoney" style="font-size:11.5px;margin-top:6px"></div>
+  <div class="risk" id="risk"></div>
+  <div class="legend">
+    <div><span class="sw" style="background:var(--dc)"></span><span id="legendDc">Data center</span></div>
+    <div><span class="sw" style="background:var(--p1)"></span>Phase 1 · fast payback</div>
+    <div><span class="sw" style="background:var(--p2)"></span>Phase 2 · boilers near end of life</div>
+    <div><span class="sw" style="background:var(--p3)"></span>Phase 3 · fill in the rest</div>
+    <div><span class="sw" style="background:#4a5260"></span>Not connected</div>
+  </div>
+  <div class="muted" style="font-size:11px;margin-top:10px">Illustrative: cost inputs are placeholders.</div>
+</div>
+
+<div id="right">
+<div id="months" class="panel">
+  <div><b>Data center heat used, by month</b></div>
+  <div class="muted" style="font-size:11px">Bar height = share of the heat the data center makes</div>
+  <div id="bars"></div>
+  <div class="mlabels" id="mlabels"></div>
+  <div id="monthTxt"></div>
+</div>
+
+<div id="wf" class="panel">
+  <div><b>Who gets heat first</b></div>
+  <div class="muted" style="font-size:11px">Each hour, heat flows down the ladder. If supply runs short, the bottom rung is cut first.</div>
+  <div id="wfScen"></div>
+  <svg id="wfSvg" viewBox="0 0 280 120" width="100%"></svg>
+  <div id="wfLegend" style="font-size:11px;margin-top:2px"></div>
+  <div id="wfShare"></div>
+</div>
+<div id="card" class="panel"><span class="x" id="cardX">✕</span><div id="cardBody"></div></div>
+</div>
+
+<div id="controls" class="panel">
+  <div class="ctl">
+    <label><span>Timeline</span><b id="stageTxt">Today</b></label>
+    <input id="stage" type="range" min="0" max="3" step="1" value="0">
+    <div class="ticks"><span>Today</span><span>Phase 1</span><span>Phase 2</span><span>Phase 3</span></div>
+    <div class="chips"><button id="play">▶ Play</button></div>
+  </div>
+  <div class="ctl">
+    <label><span>Month</span><b id="monthName">January</b></label>
+    <input id="month" type="range" min="0" max="11" step="1" value="0">
+    <div class="ticks"><span>Jan</span><span>Apr</span><span>Jul</span><span>Oct</span><span>Dec</span></div>
+    <div class="chips"><button id="winter">Winter (Jan)</button><button id="summer">Summer (Jul)</button></div>
+  </div>
+</div>
+
+<div id="err" class="panel"></div>
+<div id="modal"><div id="modalBox"><span id="modalX">✕</span><div id="modalBody"></div></div></div>
+
+<script src="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.js"></script>
+<script src="https://unpkg.com/deck.gl@9/dist.min.js"></script>
+<script>
+// =====================================================================
+// HeatOS map. Reads ../out/plan.json (format: see SCHEMA.md). No build step.
+//   stage 0..3  = timeline slider (0 = today, 3 = all phases built)
+//   month 0..11 = month slider (changes the heat numbers and flow speed)
+// =====================================================================
+const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const PHASE_COLOR = {1: [45,212,191], 2: [251,191,36], 3: [167,139,250]};   // matches CSS --p1..3
+const DC_COLOR = [255, 77, 109], GREY = [74, 82, 96];
+const state = { stage: 0, month: 0, selected: null, selectedPipe: null, scen: "normal" };
+const TIER_COLOR = { PROTECTED: "#ff8fb1", FIRM: "#5aa9ff", BASE: "#4ade80", FLEX: "#fb923c" };
+const TIER_ORDER = ["PROTECTED", "FIRM", "BASE", "FLEX"];
+let plan, byBbl = {}, pipeData = [], maxDist = 1, overlay, map;
+
+const $ = id => document.getElementById(id);
+const fmt = (n, d = 0) => n.toLocaleString("en-US", { maximumFractionDigits: d });
+const usd = n => Math.abs(n) >= 1e6 ? "$" + fmt(n / 1e6, 1) + "M" : "$" + fmt(n / 1e3, 0) + "k";
+
+const SITE_FILES = { chelsea: "../out/plan.json", lansing: "../out/plan_lansing.json" };
+const SITE_LABEL = { chelsea: "Chelsea", lansing: "Lansing" };
+let siteId = new URLSearchParams(location.search).get("site") || "chelsea";
+
+// Load one site's plan (the model writes one JSON file per site) and redraw everything from it.
+function loadSite(id) {
+  siteId = id;
+  fetch(SITE_FILES[id], { cache: "no-store" }).then(r => r.json()).then(startSite).catch(e => {
+    $("err").style.display = "block";
+    $("err").innerHTML = "Could not load <code>" + SITE_FILES[id] + "</code>. Run <code>python optimize.py " + id + "</code> and serve the <code>heatos</code> folder.<br><span class='muted'>" + e + "</span>";
+  });
+}
+loadSite(siteId);
+
+function startSite(p) {
+  plan = p; byBbl = {};
+  plan.buildings.forEach(b => byBbl[b.bbl] = b);
+  state.stage = 0; state.selected = null; state.selectedPipe = null; $("stage").value = 0;
+  maxDist = 1;
+  prepPipes(); buildBars(); renderRisk();
+  $("siteSub").textContent = plan.site.subtitle;
+  $("legendDc").textContent = plan.site.dc_name;
+  document.title = "HeatOS · " + plan.site.name;
+  $("sysBtn").href = "proposal.html?site=" + plan.site.id;
+  $("siteTabs").innerHTML = Object.keys(SITE_FILES).map(k => "<button class='" + (k === siteId ? "on" : "") + "' data-k='" + k + "'>" + SITE_LABEL[k] + "</button>").join("");
+  document.querySelectorAll("#siteTabs button").forEach(b => b.onclick = () => { if (b.dataset.k !== siteId) loadSite(b.dataset.k); });
+  const cam = plan.site.camera;
+  if (!map) createMap(cam);
+  else map.flyTo({ center: [cam.lon, cam.lat], zoom: cam.zoom, bearing: cam.bearing, pitch: cam.pitch, duration: 2200 });
+  update();
+}
+
+function createMap(cam) {
+  map = new maplibregl.Map({
+    container: "map",
+    style: "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",   // free, no API key
+    center: [cam.lon, cam.lat], zoom: cam.zoom, pitch: cam.pitch, bearing: cam.bearing,
+    maxPitch: 75, attributionControl: { compact: true }
+  });
+  overlay = new deck.MapboxOverlay({ interleaved: false, layers: [], getTooltip });
+  map.addControl(overlay);
+  map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "bottom-right");
+  new ResizeObserver(() => map.resize()).observe($("map"));      // keep canvas in step with the window
+
+  $("stage").oninput = e => { state.stage = +e.target.value; update(); };
+  $("month").oninput = e => { state.month = +e.target.value; update(); };
+  $("winter").onclick = () => { state.month = 0; $("month").value = 0; update(); };
+  $("summer").onclick = () => { state.month = 6; $("month").value = 6; update(); };
+  $("cardX").onclick = () => { state.selected = null; state.selectedPipe = null; update(); };
+  $("play").onclick = togglePlay;
+  $("localBtn").onclick = () => openLocal(plan.site.id);
+  $("ledgerBtn").onclick = openLedger;
+  $("relBtn").onclick = openReliability;
+  $("modalX").onclick = () => { $("modal").style.display = "none"; };
+  $("modal").onclick = e => { if (e.target.id === "modal") $("modal").style.display = "none"; };
+  requestAnimationFrame(tick);
+}
+
+// ---------- pipes: give every vertex a "distance from the data center" so flow can travel outward
+function prepPipes() {
+  const key = c => c[0].toFixed(6) + "," + c[1].toFixed(6);
+  const distAt = {};                       // endpoint -> metres from data center
+  pipeData = plan.pipes.map(p => {
+    const start = distAt[key(p.coords[0])] ?? 0;          // pipes are sorted outward, so parent is known
+    let d = start; const ts = [start];
+    for (let i = 1; i < p.coords.length; i++) {
+      d += segLen(p.coords[i - 1], p.coords[i]); ts.push(d);
+    }
+    if (p.kind !== "lateral") distAt[key(p.coords[p.coords.length - 1])] = d;
+    maxDist = Math.max(maxDist, d);
+    return { ...p, path: p.coords, ts };
+  });
+}
+function segLen(a, b) {                    // metres between two lon/lat points (small distances)
+  const kx = 111320 * Math.cos(a[1] * Math.PI / 180), ky = 110540;
+  return Math.hypot((b[0] - a[0]) * kx, (b[1] - a[1]) * ky);
+}
+
+// ---------- numbers for the current timeline stage and month
+function stats() {
+  const S = state.stage, M = state.month;
+  const ph = plan.phases.slice(0, S);
+  const sum = f => ph.reduce((a, p) => a + f(p), 0);
+  const joined = plan.buildings.filter(b => b.chosen && b.phase <= S);
+  const used = joined.reduce((a, b) => a + b.dc_heat_mwh_month[M], 0);          // MWh from DC this month
+  const delivered = joined.reduce((a, b) => a + b.heat_delivered_mwh_month[M], 0);
+  const avail = plan.datacenter.monthly_available_mwh[M];
+  const yearly = joined.map(b => b.dc_heat_mwh_month).reduce((a, m) => a.map((v, i) => v + m[i]), Array(12).fill(0));
+  return {
+    n: joined.length, pipeM: plan.pipes.filter(p => p.phase <= S).reduce((a, p) => a + p.length_m, 0),
+    capex: sum(p => p.capex_usd), heatGWh: sum(p => p.heat_delivered_gwh_year),
+    co2: sum(p => p.co2_avoided_t_year), fines: sum(p => p.fines_avoided_usd_year),
+    used, delivered, avail, yearly,
+    direct: (() => { const w = joined.reduce((a, b) => a + b.heat_delivered_mwh_year, 0);
+      return w ? joined.reduce((a, b) => a + b.temperature_match.direct_use_share * b.heat_delivered_mwh_year, 0) / w : 0; })()
+  };
+}
+
+function update() {
+  const s = stats(), S = state.stage, M = state.month;
+  $("stageTxt").textContent = S === 0 ? "Today" : "Phase " + S + " · " + plan.phases[S - 1].start_year;
+  $("monthName").textContent = MONTHS[M];
+  $("sBuildings").textContent = s.n;
+  $("sPipe").textContent = fmt(s.pipeM / 1000, 2) + " km";
+  $("sHeat").textContent = fmt(s.heatGWh, 1) + " GWh";
+  const usedYr = s.yearly.reduce((a, v) => a + v, 0), availYr = plan.datacenter.monthly_available_mwh.reduce((a, v) => a + v, 0);
+  $("sShare").textContent = fmt(100 * usedYr / availYr, 1) + "%";
+  $("sDirect").textContent = fmt(100 * s.direct) + "%";
+  $("sCo2").textContent = fmt(s.co2) + " t";
+  $("sMoney").textContent = "Built for " + usd(s.capex) + (plan.site.id === "chelsea" ? " · LL97 fines avoided " + usd(s.fines) + "/yr" : "") + " · money detail under Who wins?";
+
+  // month chart: bars show each month's share of available heat that is used
+  const bars = document.querySelectorAll(".bar");
+  plan.datacenter.monthly_available_mwh.forEach((a, i) => {
+    bars[i].classList.toggle("sel", i === M);
+    bars[i].firstChild.style.height = Math.min(100, 100 * s.yearly[i] / a) + "%";
+  });
+  const pct = s.avail ? 100 * s.used / s.avail : 0;
+  $("monthTxt").innerHTML = S === 0 ? "<span class='muted'>No buildings connected yet.</span>" :
+    "<b>" + MONTHS[M] + ":</b> " + fmt(s.used) + " MWh of " + fmt(s.avail) + " MWh used (<b>" + fmt(pct) + "%</b>)<br>" +
+    "<span class='muted'>" + (pct < 5 ? "The data center makes far more heat than the network uses." : pct < 40 ? "Mostly hot water now, so heat goes unused." : "Heating season, the data center is almost fully used.") + "</span>";
+  renderCard();
+  renderWaterfall();
+  render();
+}
+
+// ---------- waterfall: stacked heat by service tier over a typical day of the chosen month
+function renderWaterfall() {
+  const S = state.stage, M = state.month;
+  const names = { normal: "Normal year", polar_vortex: plan.site.id === "lansing" ? "Cold snap" : "Polar vortex", dc_down: "Data center −30%" };
+  $("wfScen").innerHTML = Object.keys(names).map(k => "<button class='" + (k === state.scen ? "on" : "") + "' data-k='" + k + "'>" + names[k] + "</button>").join("");
+  document.querySelectorAll("#wfScen button").forEach(b => b.onclick = () => { state.scen = b.dataset.k; update(); });
+  const W = 280, H = 120, L = 6, T = 6, B = 16, pw = W - L - 4, ph = H - T - B;
+  const data = S > 0 && plan.waterfall && plan.waterfall[S] && plan.waterfall[S][state.scen];
+  if (!data) { $("wfSvg").innerHTML = "<text x='10' y='60' fill='#8b98a8' font-size='11'>Move the timeline to Phase 1 or later.</text>";
+    $("wfLegend").innerHTML = ""; $("wfShare").innerHTML = ""; return; }
+  const sup = data.supply_kw[M];
+  const layers = TIER_ORDER.map(t => data.served_kw[t][M]);
+  const unserved = Array.from({ length: 24 }, (_, h) => TIER_ORDER.reduce((a, t) => a + data.unserved_kw[t][M][h], 0));
+  const top = Array.from({ length: 24 }, (_, h) => layers.reduce((a, l) => a + l[h], 0) + unserved[h]);
+  const ymax = Math.max(...sup, ...top) * 1.05 || 1;
+  const x = h => L + pw * h / 23, y = v => T + ph * (1 - v / ymax);
+  let acc = Array(24).fill(0), svg = "";
+  const band = (lo, hi, fill, extra = "") => {
+    const up = hi.map((v, h) => x(h) + "," + y(v)).join(" "), dn = lo.map((v, h) => x(23 - h) + "," + y(lo[23 - h])).join(" ");
+    svg += "<polygon points='" + up + " " + dn + "' fill='" + fill + "' " + extra + "/>";
+  };
+  layers.forEach((l, i) => { const next = acc.map((v, h) => v + l[h]); band(acc, next, TIER_COLOR[TIER_ORDER[i]], "opacity='.9'"); acc = next; });
+  const withUn = acc.map((v, h) => v + unserved[h]);
+  if (unserved.some(v => v > 0)) band(acc, withUn, "#ff4d6d", "opacity='.35' stroke='#ff4d6d' stroke-width='.6'");
+  svg += "<polyline points='" + sup.map((v, h) => x(h) + "," + y(v)).join(" ") + "' fill='none' stroke='#fff' stroke-dasharray='3 3' stroke-width='1.2'/>";
+  [0, 6, 12, 18, 23].forEach(h => svg += "<text x='" + x(h) + "' y='" + (H - 3) + "' fill='#8b98a8' font-size='9' text-anchor='middle'>" + h + "h</text>");
+  svg += "<text x='" + (L + 2) + "' y='" + (T + 8) + "' fill='#8b98a8' font-size='9'>" + fmt(ymax / 1000, 1) + " MW</text>";
+  $("wfSvg").innerHTML = svg;
+  $("wfLegend").innerHTML = TIER_ORDER.map(t => "<span style='margin-right:8px'><span class='tierdot' style='background:" + TIER_COLOR[t] + "'></span>" + t.toLowerCase() + "</span>").join("") +
+    "<span style='margin-right:8px'><span class='tierdot' style='background:#ff4d6d;opacity:.5'></span>cut (boiler)</span><span>- - supply</span>";
+  $("wfShare").innerHTML = "<span class='muted'>" + names[state.scen] + " · " + MONTHS[M] + ". Share of heat served per year:</span><br>" +
+    TIER_ORDER.map(t => { const v = data.share_served[t]; return v == null ? "" : "<span class='tierdot' style='background:" + TIER_COLOR[t] + "'></span>" + t.toLowerCase() + " <b>" + fmt(100 * v) + "%</b> &nbsp;"; }).join("");
+}
+
+// ---------- building card (offer comes in step 4)
+function renderCard() {
+  const pp = state.selectedPipe;
+  if (pp) {
+    $("card").style.display = "block";
+    const who = pp.serves.map(id => byBbl[id]).filter(Boolean);
+    const bk = plan.reliability.continuity;
+    $("cardBody").innerHTML = "<h2>If this street pipe breaks</h2><div class='muted'>Phase " + pp.phase + " pipe, " + fmt(pp.length_m) + " m long</div>" +
+      "<table>" + row("Customers on this branch", pp.serves.length) + row("Share of network heat", fmt(100 * pp.heat_share, 1) + "%") +
+      row("Data center", "not affected") + row("Other customers", "keep their heat") + "</table>" +
+      "<div class='muted' style='font-size:11.5px;margin-top:6px'>Valves isolate the broken branch. Its customers' own boilers start by themselves within about " + bk.backup_start_minutes +
+      " minutes, and the data center's cooling is untouched because heat export is only a second sink. Repair is assumed to take " + bk.assumptions.pipe_repair_hours + " hours.</div>" +
+      "<div style='font-size:12px;margin-top:6px'>" + who.slice(0, 6).map(b => "<div>· " + b.address + " <span class='muted'>(" + b.tier.toLowerCase() + ")</span></div>").join("") +
+      (who.length > 6 ? "<div class='muted'>and " + (who.length - 6) + " more</div>" : "") + "</div>";
+    return;
+  }
+  const b = state.selected && byBbl[state.selected];
+  $("card").style.display = b ? "block" : "none";
+  if (!b) return;
+  const joined = b.chosen && b.phase <= state.stage;
+  let h = "<h2>" + b.address + "</h2><div class='muted'>" + (b.property_type || "Building") +
+    (b.year_built ? " · built " + b.year_built : "") + (b.public_housing ? " · public housing" : "") + "</div>";
+  if (!b.chosen) {
+    h += "<p class='muted'>Not in the plan. Too small, no benchmarking data, or not profitable to connect.</p>";
+  } else {
+    const c = PHASE_COLOR[b.phase];
+    h += (b.proposed ? "<p class='muted' style='font-size:12px'>Proposed new customer: the cheap local heat is what makes it possible.</p>" : "") +
+      "<p><span class='badge' style='background:rgb(" + c + ")'>Phase " + b.phase + " · " + b.join_year + "</span>" +
+      (joined ? "" : " <span class='muted'>not built yet at this point on the timeline</span>") + "</p>" +
+      "<table>" +
+      row("Heat pump", fmt(b.equipment.heat_pump_kw_th) + " kW") +
+      row("HeatOS price", "$" + fmt(b.price_heatos_usd_per_mmbtu, 1) + " / MMBtu") +
+      row("Pays today (fuel)", "$" + fmt(b.price_now_usd_per_mmbtu, 1) + " / MMBtu") +
+      row("Yearly savings", usd(b.yearly_savings_usd)) +
+      row("LL97 fines avoided", usd(b.ll97_fines_avoided_usd_year) + " / yr") +
+      row("Payback", b.payback_years ? fmt(b.payback_years, 1) + " yr" : "n/a") +
+      (b.location ? row("Location", b.location.direction + " of the data center, " + fmt(b.location.distance_m) + " m") : "") +
+      row("Service tier", "<span class='tierdot' style='background:" + TIER_COLOR[b.tier] + "'></span>" + b.tier.toLowerCase()) +
+      row("Heat without a heat pump", fmt(100 * b.temperature_match.direct_use_share) + "%") +
+      row("Network availability", fmt(b.reliability.availability_pct, 2) + "%") +
+      row("Heat fit", fmt(b.fit.score) + " / 100") +
+      row("Energy data", b.data_quality) +
+      (b.selection_frequency != null ? row("In plan in", fmt(100 * b.selection_frequency) + "% of scenarios") : "") +
+      "</table>" + ["temperature", "timing", "seasonality", "capacity"].map(k =>
+        "<div class='fitrow'><span>" + k + "</span><div class='fitbar'><i style='width:" + Math.round(100 * b.fit[k]) + "%'></i></div></div>").join("") +
+      "<div class='muted' style='font-size:11px;margin-top:6px'>" + b.tier_note + "</div>" +
+      "<a id='offerBtn' href='offer.html?site=" + siteId + "&bbl=" + b.bbl + "' target='_blank'>Open offer (PDF-ready)</a>";
+  }
+  $("cardBody").innerHTML = h;
+}
+const row = (a, b) => "<tr><td class='muted'>" + a + "</td><td>" + b + "</td></tr>";
+
+// ---------- risk summary: Monte Carlo spread + stress tests (whole plan, not phase-dependent)
+function renderRisk() {
+  const r = plan.robustness, s = plan.stress_tests, chosen = plan.buildings.filter(b => b.chosen);
+  const total = chosen.reduce((a, b) => a + b.heat_delivered_mwh_year, 0) || 1, top = chosen.reduce((m, b) => Math.max(m, b.heat_delivered_mwh_year), 0);
+  let h = "<b>Stress check</b>";
+  if (s) h += "<div>If the data center makes " + fmt(100 * s.dc_output_drops.fraction) + "% less heat: heat reused falls <b>" + fmt(s.dc_output_drops.heat_lost_pct, 1) + "%</b> (customers' boilers cover the gap)</div>" +
+    "<div>The biggest customer takes <b>" + fmt(100 * top / total) + "%</b> of the heat reused" + (s.lose_largest_customer.change_pct < -100 ? "; without it the plan turns loss-making" : "") + "</div>";
+  h += "<div class='muted'>Reliability, cooling protection and the five-way match: see <b>Reliability and match</b>.</div>";
+  if (plan.ownership_scenarios) {
+    h += "<details style='margin-top:6px'><summary class='muted' style='cursor:pointer'>Who pays for the street pipes? (money)</summary>";
+    plan.ownership_scenarios.forEach(s => h += "<div>" + s.label + ": <b>" + s.n_buildings + "</b> customers, " + fmt(s.heat_delivered_gwh, 1) + " GWh heat, " + fmt(s.co2_avoided_t) + " t CO₂, " + usd(s.annual_value_after_network_usd) + "/yr after pipes</div>");
+    h += "</details>";
+  }
+  $("risk").innerHTML = h;
+}
+
+// ---------- Local fit: what we know about the place, and what the plan does about it
+function openLocal(site) {
+  $("modal").style.display = "block";
+  const tabs = "<div class='tabs'><button class='" + (site === "chelsea" ? "on" : "") + "' data-s='chelsea'>Chelsea · 111 8th Ave</button>" +
+    "<button class='" + (site === "lansing" ? "on" : "") + "' data-s='lansing'>Lansing · Lake Hawkeye</button></div>";
+  const ctx = plan.site_context[site];
+  const items = ctx.items.map(i => "<div class='ctxrow'><b>" + i.cat + "</b><span>" + i.metric + "</span><span>" + i.value + "</span></div>").join("");
+  let body = "<h2 style='margin:0'>Local fit: " + ctx.site + "</h2><div class='muted' style='font-size:12px'>Nearest natural reference area: " + ctx.nearest_natural_reference + ".</div>" + tabs;
+  if (site === plan.site.id) {
+    body += "<div class='grid2'>" + plan.regenerative_scorecard.map(s => "<div class='sc'><div class='cat'>" + s.category + "</div><div class='hl'>" + s.headline +
+      "</div><div class='lbl'>About the place</div><p>" + s.site_says + "</p><div class='lbl'>What HeatOS does</div><p>" + s.plan_does + "</p></div>").join("") + "</div>";
+    const c = plan.climate_outlook || [];
+    if (c.length) body += "<h3>Climate outlook: does the plan still work as winters warm?</h3><table><tr><th>Year</th><th>Warmer by</th><th>Heating demand</th><th>Hot water share</th><th>Buildings</th><th>Heat delivered</th><th>Yearly value</th></tr>" +
+      c.map(r => "<tr><td>" + r.year + "</td><td>+" + r.warming_f + " °F</td><td>" + (r.heating_demand_vs_today_pct > 0 ? "+" : "") + fmt(r.heating_demand_vs_today_pct) + "%</td><td>" + fmt(100 * r.hot_water_share_of_delivered) + "%</td><td>" + r.n_buildings + "</td><td>" + fmt(r.heat_delivered_gwh, 1) + " GWh</td><td>" + usd(r.annual_value_usd) + "</td></tr>").join("") +
+      "</table><div class='muted' style='font-size:12px'>Each row re-solves the whole plan in that climate. Value is before street-pipe cost (Con Ed base case). 2080 is the high-warming case (+12 °F). Up to up to 69 days above 90 °F are expected by 2050 (19 today): that is extra cooling demand the loop could serve, which is not valued here.</div>";
+    const b = plan.datacenter_benefits;
+    body += "<h3>For the data center</h3><div class='muted' style='font-size:12.5px'>Heat carried away: <b>" + fmt(b.heat_removed_gwh_year, 1) + " GWh/yr</b>. Cooling electricity freed: <b>" + fmt(b.cooling_electricity_saved_gwh_year, 1) +
+      " GWh/yr</b> (" + fmt(b.average_freed_power_mw, 1) + " MW average, " + fmt(b.peak_freed_power_mw, 1) + " MW peak) that can run servers. Water saved: <b>" + fmt(b.water_saved_million_gallons_year, 1) + " million gallons/yr</b> if towers are evaporative.</div>";
+  } else {
+    body += "<div class='sc' style='margin-bottom:10px'><div class='cat'>Other site</div><p>The scorecard and climate outlook are drawn from the plan that is loaded. Use the site buttons at the top left to switch sites, then open this view again.</p></div>";
+  }
+  body += "<h3>Local conditions</h3>" + items;
+  $("modalBody").innerHTML = body;
+  // these tabs live inside the pop-up only (the site buttons at the top left have their own handlers)
+  document.querySelectorAll("#modal .tabs button").forEach(b => b.onclick = () => {
+    if (b.dataset.s === plan.site.id) openLocal(b.dataset.s);
+    else { $("modal").style.display = "none"; loadSite(b.dataset.s); }      // switch the map to that site
+  });
+  $("modal").scrollTop = 0;
+}
+
+// ---------- Who wins? Every party's money, risk and chance of coming out ahead
+const usdS = n => (n < 0 ? "−" : "") + usd(Math.abs(n));
+function showModal(html) { $("modalBody").innerHTML = html; $("modal").style.display = "block"; $("modal").scrollTop = 0; }
+
+function openLedger() {
+  const L = plan.ledger, rob = plan.robustness || {}, parties = L.parties;
+  const verdict = L.balanced
+    ? "<div class='sc' style='border-color:#4ade80'><div class='cat' style='color:#4ade80'>Balanced deal</div><p>Every party has at least an " + L.threshold_pct + "% chance of coming out ahead across " + (rob.n_runs || 60) + " price and cost scenarios.</p></div>"
+    : "<div class='sc' style='border-color:#fbbf24'><div class='cat' style='color:#fbbf24'>Not yet balanced</div><p>Below the " + L.threshold_pct + "% bar: <b>" + (L.parties_below_threshold.join(", ") || "not tested") + "</b>. The deal search below shows what to change.</p></div>";
+  const rows = parties.map(r => "<tr><td><b>" + r.party + "</b><br><span class='muted'>" + r.role + "</span></td><td>" + usd(r.pays_upfront_usd) + "</td><td>" + usd(r.pays_annual_usd) +
+    "</td><td>" + usd(r.gets_annual_usd) + "</td><td>" + usdS(r.net_annual_usd) + "</td><td>" + (r.simple_payback_years ? r.simple_payback_years + " yr" : "–") + "</td><td>" + usdS(r.npv_usd) +
+    "</td><td><b>" + (r.wins_in_pct_of_scenarios == null ? "–" : fmt(r.wins_in_pct_of_scenarios) + "%") + "</b></td></tr>").join("");
+  const cards = parties.filter(r => !r.id.startsWith("customers_") || r.id === parties.find(x => x.id.startsWith("customers_")).id).map(r =>
+    "<div class='sc'><div class='cat'>" + (r.id.startsWith("customers_") ? "Customers" : r.party) + "</div><div class='lbl'>What they do</div><p>" + r.responsibility +
+    "</p><div class='lbl'>The risk they carry</div><p>" + r.risk + "</p></div>").join("");
+  let deal = "";
+  if (rob.deal_search) {
+    const ds = rob.deal_search, ids = [...new Set(ds.levels.flatMap(l => Object.keys(l.party_win_pct)))].filter(i => !i.startsWith("customers_") || i === "customers_base");
+    const nm = id => (parties.find(p => p.id === id) || { party: id }).party.replace(/^.*?: /, "");
+    deal = "<h3>Deal search: what share of the street pipes should someone else pay?</h3><div class='muted' style='font-size:12px'>Each row is a short Monte Carlo. A party 'wins' when its net present value is above zero. " +
+      (ds.clears_bar ? "The share that makes the weakest party safest is <b>" + fmt(100 * ds.recommended_share) + "%</b> (weakest party still wins in " + fmt(ds.recommended_weakest_win_pct) + "% of scenarios)." :
+       "No share lets every party clear " + ds.threshold_pct + "%. The best compromise is " + fmt(100 * ds.recommended_share) + "% (weakest party wins in " + fmt(ds.recommended_weakest_win_pct) + "%): the plan needs cheaper pipes, a bigger anchor customer or other income.") + "</div>" +
+      "<table><tr><th>Paid by others</th>" + ids.map(i => "<th>" + nm(i) + "</th>").join("") + "<th>Customers (median)</th></tr>" +
+      ds.levels.map(l => "<tr" + (l.pipe_subsidy_fraction === ds.recommended_share ? " style='background:rgba(74,222,128,.12)'" : "") + "><td>" + fmt(100 * l.pipe_subsidy_fraction) + "%</td>" +
+        ids.map(i => "<td>" + (l.party_win_pct[i] == null ? "–" : fmt(l.party_win_pct[i]) + "%") + "</td>").join("") + "<td>" + l.n_buildings_median + "</td></tr>").join("") + "</table>";
+  }
+  let nxt = "";
+  if (plan.next_in_line && plan.next_in_line.length) {
+    nxt = "<h3>Next in line: what would it take for customers who are not in the plan?</h3><div class='muted' style='font-size:12px'>'Heat density' is MWh of heat per metre of new pipe per year; planners treat roughly 1.5 as the minimum for a network to pay for itself. The grant column is a one-off payment that would close the yearly gap.</div>" +
+      "<table><tr><th>Customer</th><th>Units</th><th>Heat (MWh/yr)</th><th>New pipe</th><th>Heat density</th><th>Yearly gap</th><th>Grant needed</th><th>Per unit</th></tr>" +
+      plan.next_in_line.map(n => "<tr><td>" + n.address + "</td><td>" + n.units + "</td><td>" + fmt(n.heat_mwh_year) + "</td><td>" + fmt(n.new_pipe_m) + " m</td><td" + (n.meets_density_rule ? " style='color:#4ade80'" : "") + ">" + n.heat_density_mwh_per_m + "</td><td>" + usdS(n.yearly_gap_usd) +
+        "</td><td>" + (n.grant_needed_usd > 0 ? usd(n.grant_needed_usd) : "none") + "</td><td>" + (n.grant_needed_usd > 0 ? usd(n.grant_per_unit_usd) : "–") + "</td></tr>").join("") + "</table>";
+  }
+  showModal("<h2 style='margin:0'>Who pays, who gains, who carries the risk</h2><div class='muted' style='font-size:12px'>" + plan.site.name + ". Net present value over " + 25 + " years; every price is a placeholder until replaced with quotes.</div>" +
+    "<div style='margin:12px 0'>" + verdict + "</div><table><tr><th>Party</th><th>Pays up front</th><th>Pays per year</th><th>Gets per year</th><th>Net per year</th><th>Payback</th><th>Net present value</th><th>Wins in</th></tr>" + rows + "</table>" +
+    "<h3>Who is responsible for what</h3><div class='grid2'>" + cards + "</div>" + deal + nxt);
+}
+
+// ---------- Reliability and match: the five matches, cooling protection, heat continuity
+function openReliability() {
+  const R = plan.reliability, F = R.cooling_firewall, C = R.continuity, a = C.assumptions;
+  const match = plan.match_scorecard.map(m => "<div class='sc'><div class='cat'>" + m.axis + "</div><div class='hl'>" + m.headline + "</div><p>" + m.how + "</p></div>").join("");
+  const rules = F.rules.map(r => "<div class='sc'><div class='cat'>" + r.rule + "</div><p>" + r.how + "</p></div>").join("");
+  showModal("<h2 style='margin:0'>How supply and demand are matched, and how both sides are protected</h2><div class='muted' style='font-size:12px'>" + plan.site.name + " · " + plan.site.dc_name + "</div>" +
+    "<h3>The five matches: temperature, capacity, timing, seasonality, continuity</h3><div class='grid2'>" + match + "</div>" +
+    "<h3>How the data center's cooling is protected</h3><div class='muted' style='font-size:12px'>Peak export is " + fmt(100 * F.peak_export_share_of_heat, 1) + "% of the heat the data center makes (rule: never more than " + fmt(100 * F.max_export_fraction) + "%). Its own cooling plant stays at 100% size: <b>" + (F.rule_met ? "rule met" : "RULE NOT MET") + "</b>.</div><div class='grid2' style='margin-top:8px'>" + rules + "</div>" +
+    "<h3>How continuity of heat is protected</h3><div class='sc'><p>Expected network availability for the average customer is <b>" + fmt(C.network_availability_pct, 2) + "%</b>. Whenever the network is down, the customer's own boiler (kept as backup) starts by itself within about " + C.backup_start_minutes +
+    " minutes, so heat never stops. A store at the network head rides through short trips (" + C.storage_hours + " hours). Click any street pipe on the map to see who would lose network heat if it broke.</p></div>" +
+    "<table><tr><th>Failure we plan for</th><th>How often</th><th>How long</th></tr><tr><td>Data center heat source trips</td><td>" + a.dc_trips_per_year + " per year</td><td>" + a.dc_trip_hours + " hours (store covers " + C.storage_hours + ")</td></tr>" +
+    "<tr><td>Break on a street pipe</td><td>" + a.pipe_failures_per_km_year + " per km per year</td><td>" + a.pipe_repair_hours + " hours</td></tr>" +
+    "<tr><td>Heat pump or exchanger at one building</td><td>" + a.hp_failures_per_year + " per year</td><td>" + a.hp_repair_hours + " hours</td></tr></table>" +
+    "<div class='muted' style='font-size:12px'>These rates are placeholders in config.py. Tier rules decide who is last to lose network heat when supply is short (see the 'Who gets heat first' panel).</div>");
+}
+
+// ---------- month chart skeleton
+function buildBars() {
+  $("bars").innerHTML = MONTHS.map(() => "<div class='bar'><i></i></div>").join("");
+  $("mlabels").innerHTML = MONTHS.map(m => "<span>" + m[0] + "</span>").join("");
+  document.querySelectorAll(".bar").forEach((el, i) => el.onclick = () => { state.month = i; $("month").value = i; update(); });
+}
+
+// ---------- deck.gl layers
+function getTooltip({ object, layer }) {
+  if (!object || layer.id !== "buildings") return null;
+  const bbl = object.properties.bbl, b = byBbl[bbl];
+  if (object.properties.is_dc) return "111 8th Ave data center";
+  return b ? b.address + (b.chosen ? "\nPhase " + b.phase : "") : null;
+}
+
+function buildingColor(f) {
+  const p = f.properties;
+  if (p.is_dc) return [...DC_COLOR, 255];
+  if (p.bbl === state.selected) return [255, 255, 255, 255];
+  if (p.phase && p.phase <= state.stage) return [...PHASE_COLOR[p.phase], 235];
+  return [...GREY, 200];
+}
+
+function render(time = 0) {
+  if (!plan) return;
+  const S = state.stage, M = state.month, st = stats();
+  const visible = pipeData.filter(p => p.phase <= S);
+  // flow intensity follows how much of the data center's heat is used this month
+  const load = st.avail ? Math.max(.12, Math.min(1, st.used / st.avail)) : .12;
+  const period = maxDist + 150, speed = 60 + 140 * load;                      // metres per second
+  const t = (time / 1000) * speed;
+
+  const layers = [
+    new deck.GeoJsonLayer({
+      id: "buildings", data: plan.footprints, extruded: true, pickable: true,
+      getElevation: f => f.properties.is_dc ? Math.max(f.properties.height_m, 30) : (f.properties.height_m || 8),
+      getFillColor: buildingColor, material: { ambient: .45, diffuse: .6, shininess: 24 },
+      updateTriggers: { getFillColor: [S, state.selected] },
+      transitions: { getFillColor: 350 },
+      onClick: ({ object }) => { if (object) { state.selected = object.properties.bbl; state.selectedPipe = null; update(); } }
+    }),
+    new deck.PathLayer({
+      id: "pipes", data: visible, getPath: d => d.path, widthUnits: "meters", widthMinPixels: 3, pickable: true,
+      onClick: ({ object }) => { if (object && object.kind === "main") { state.selectedPipe = object; state.selected = null; update(); } },
+      getWidth: d => d.kind === "lateral" ? 4 : 5 + 3 * Math.sqrt((d.peak_kw_th || 0) / 1000),
+      getColor: d => [...PHASE_COLOR[d.phase], 150], capRounded: true, jointRounded: true,
+      parameters: { depthCompare: "always" }
+    })
+  ];
+  // three flow pulses spaced along the loop, faster and brighter in high-use months
+  for (let k = 0; k < 3; k++) {
+    layers.push(new deck.TripsLayer({
+      id: "flow" + k, data: visible, getPath: d => d.path, getTimestamps: d => d.ts,
+      getColor: d => [...PHASE_COLOR[d.phase].map(v => Math.min(255, v + 70)), Math.round(110 + 145 * load)],
+      widthUnits: "meters", widthMinPixels: 4, getWidth: d => d.kind === "lateral" ? 5 : 6 + 3 * Math.sqrt((d.peak_kw_th || 0) / 1000),
+      trailLength: 90, currentTime: (t + k * period / 3) % period, fadeTrail: true, capRounded: true, jointRounded: true,
+      parameters: { depthCompare: "always" }
+    }));
+  }
+  overlay.setProps({ layers });
+}
+
+let playing = false, playTimer = null;
+function togglePlay() {
+  playing = !playing; $("play").textContent = playing ? "❚❚ Pause" : "▶ Play";
+  clearInterval(playTimer);
+  if (playing) {
+    if (state.stage >= 3) { state.stage = 0; $("stage").value = 0; update(); }
+    playTimer = setInterval(() => {
+      if (state.stage >= 3) { togglePlay(); return; }
+      state.stage++; $("stage").value = state.stage; update();
+    }, 2600);
+  }
+}
+
+function tick(time) { render(time); requestAnimationFrame(tick); }
+</script>
+</body>
 </html>
