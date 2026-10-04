@@ -8,6 +8,7 @@ Param can be a bare number or {value, range, source}.
 from __future__ import annotations
 
 from functools import lru_cache
+import os
 from pathlib import Path
 from typing import Any, Iterator, Literal
 
@@ -16,7 +17,8 @@ from pydantic import BaseModel, ConfigDict, model_validator
 
 from engine.contracts import SiteId, UseType
 
-SITES_DIR = Path(__file__).parent / "sites"
+# HEATOS_SITES_DIR lets tests pin the original spec configs while the app uses the team-calibrated ones
+SITES_DIR = Path(os.environ.get("HEATOS_SITES_DIR") or Path(__file__).parent / "sites")
 VERIFY = "assumption - verify"
 
 
@@ -165,6 +167,8 @@ class SiteConfig(_Section):
     parties: list[Party]
     party_by_use_type: dict[UseType, str]
     guarantee_use_types: list[UseType] = []
+    # what the recommended plan maximises: 'value' = NPV incl. carbon, 'financial' = money only (carbon still reported)
+    plan_objective: Literal["value", "financial"] = "value"
     guarantee_building_ids: list[str] = []
 
     @model_validator(mode="after")

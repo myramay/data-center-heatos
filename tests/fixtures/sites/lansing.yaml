@@ -13,11 +13,11 @@ site:
 
 data_center:
   name: TeraWulf Lake Hawkeye
-  capacity_mw_th: {value: 100.0, range: [80.0, 125.0], source: "team supply model: TeraWulf phase 1 150 MW / PUE 1.2, AI-inference utilization"}
-  capture_fraction: {value: 0.75, range: [0.65, 0.80], source: "team supply model: direct-to-chip liquid capture"}
+  capacity_mw_th: {value: 20.0, range: [10.0, 30.0], source: "HeatOS working assumption (usable)"}
+  capture_fraction: {value: 0.85, range: [0.75, 0.95], source: "HeatOS working assumption"}
   supply_temp_c_min: {value: 45.0, source: "liquid cooling supply 45-65 C"}
   supply_temp_c_max: {value: 65.0, source: "liquid cooling supply 45-65 C"}
-  it_load_mw: {value: 100.0, source: "team supply model: TeraWulf phase 1 150 MW / PUE 1.2, AI-inference utilization"}
+  it_load_mw: {value: 20.0, source: "assumption - verify"}
   pue: {value: 1.15, range: [1.1, 1.3], source: "liquid-cooled; assumption - verify"}
   chiller_cop: {value: 5.0, source: "challenge spec"}
   cooling_towers: false

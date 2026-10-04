@@ -204,8 +204,10 @@ class PlanDetails:
                 "order": self.order, "budget_kw": round(self.budget_kw, 1), "used_kw": round(self.used_kw, 1)}
 
 
-def build_plan(site: SiteId, buildings: Sequence[Building], use_carbon: bool = True) -> PlanDetails:
+def build_plan(site: SiteId, buildings: Sequence[Building], use_carbon: bool | None = None) -> PlanDetails:
     cfg = load_site(site)
+    if use_carbon is None:
+        use_carbon = cfg.plan_objective == "value"
     budget = supply_budget_kw(cfg)
     nodes: list[tuple[float, float]] = []          # connected building positions (data center handled separately)
     remaining = {b.id: b for b in buildings}

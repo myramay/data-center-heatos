@@ -40,8 +40,8 @@ def test_demand_keeps_annual_totals_and_reacts_to_cold(providers, site):
 
 
 @pytest.mark.parametrize("site", ["chelsea", "lansing"])
-def test_supply_scaled_to_config_by_default(providers, site, monkeypatch):
-    monkeypatch.delenv("HEATOS_SUPPLY_SCALE", raising=False)
+def test_supply_scaled_to_config_when_asked(providers, site, monkeypatch):
+    monkeypatch.setenv("HEATOS_SUPPLY_SCALE", "config")
     _, _, _, s = providers
     from engine.config import load_site
     dc = load_site(site).data_center
@@ -50,3 +50,11 @@ def test_supply_scaled_to_config_by_default(providers, site, monkeypatch):
     assert max(f.p50) == pytest.approx(cap, rel=0.01)
     out = s.get_supply_forecast(site, datetime(2025, 1, 1), 24, "server_outage")
     assert out.p50[:6] == [0.0] * 6
+
+
+@pytest.mark.parametrize("site", ["chelsea", "lansing"])
+def test_supply_uses_team_magnitude_by_default(providers, site, monkeypatch):
+    monkeypatch.delenv("HEATOS_SUPPLY_SCALE", raising=False)
+    _, _, _, s = providers
+    f = s.get_supply_forecast(site, datetime(2025, 1, 1), 8760)
+    assert np.mean(f.p50) / 1000 == pytest.approx(team_ml.team_supply_mw(site), rel=0.05)

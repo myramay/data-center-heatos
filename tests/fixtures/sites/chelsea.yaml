@@ -16,11 +16,11 @@ site:
 
 data_center:
   name: 111 8th Ave
-  capacity_mw_th: {value: 11.7, range: [10.6, 12.7], source: "team supply model (heat_models.py): LL84-calibrated IT load, multi-operator traces"}
-  capture_fraction: {value: 0.80, range: [0.70, 0.90], source: "team supply model: water-loop capture of IT heat 70-90%"}
+  capacity_mw_th: {value: 5.0, range: [3.0, 8.0], source: "HeatOS working assumption (challenge brief)"}
+  capture_fraction: {value: 0.85, range: [0.75, 0.9], source: "HeatOS working assumption"}
   supply_temp_c_min: {value: 27.0, source: "air-cooled facility water return; assumption - verify"}
   supply_temp_c_max: {value: 32.0, source: "air-cooled facility water return; assumption - verify"}
-  it_load_mw: {value: 11.7, source: "team supply model (heat_models.py): LL84-calibrated IT load, multi-operator traces"}
+  it_load_mw: {value: 5.0, source: "heat ~= IT load; assumption - verify"}
   pue: {value: 1.4, range: [1.2, 1.6], source: "assumption - verify"}
   chiller_cop: {value: 5.0, source: "challenge spec (chiller COP 5)"}
   cooling_towers: true
@@ -175,6 +175,5 @@ party_by_use_type:
   greenhouse: commercial
   aquaculture: commercial
 
-plan_objective: financial         # team decision: present the money-only plan (carbon still reported)
-guarantee_use_types: []          # dropped: serving 70 C from this loop cost the guarantee buyer more than it saved
-guarantee_building_ids: []
+guarantee_use_types: [clinic]
+guarantee_building_ids: [CH-17]   # senior housing residence

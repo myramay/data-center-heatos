@@ -202,11 +202,20 @@ def compare(site: SiteId) -> dict:
                     carbon_waterfall=[{"step": "Today's heating", "t": round(sq_co2, 1), "total": True}],
                     notes=["baseline: nobody gains or loses"]),
         _standalone(site, ids),
-        _run_plan(site, "heatos", "HeatOS plan", "Recommended: NPV incl. carbon, sized to firm capacity, deal terms applied.",
+        _run_plan(site, "heatos", "HeatOS plan",
+                  ("Recommended: money-only NPV (carbon still counted below), sized to firm capacity, deal terms applied."
+                   if cfg.plan_objective == "financial" else
+                   "Recommended: NPV incl. carbon, sized to firm capacity, deal terms applied."),
                   plan, deal.terms, deal.premiums_usd, sq_co2),
     ]
-    fin = build_plan(site, providers.get_buildings(site), use_carbon=False).plan
-    alts.append(_run_plan(site, "financial_only", "Money-only plan", "Same engine with carbon valued at $0.", fin, deal.terms, None, sq_co2))
+    # the same engine with the other objective, so the choice of objective is visible
+    if cfg.plan_objective == "financial":
+        fin = build_plan(site, providers.get_buildings(site), use_carbon=True).plan
+        alts.append(_run_plan(site, "financial_only", "Carbon-valued plan", f"Same engine with carbon valued at ${cfg.policy['carbon_price_usd_per_t'].value:.0f}/t.",
+                              fin, deal.terms, None, sq_co2))
+    else:
+        fin = build_plan(site, providers.get_buildings(site), use_carbon=False).plan
+        alts.append(_run_plan(site, "financial_only", "Money-only plan", "Same engine with carbon valued at $0.", fin, deal.terms, None, sq_co2))
     alts.append(_run_plan(site, "connect_all", "Connect everyone in reach", "Every reachable building, ignoring capacity.",
                           _connect_all_plan(site), deal.terms, None, sq_co2))
     # Score every alternative over the SAME buildings: anyone an alternative doesn't serve stays on today's heating.

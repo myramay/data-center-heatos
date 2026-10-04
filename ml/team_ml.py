@@ -223,7 +223,7 @@ class TeamSupplyProvider(mocks.MockSupplyProvider):
         _, h = _hoy(idx)
         p10, p50, p90 = (a[h] for a in _supply(site))
         cap = dc.capacity_mw_th.value * 1000 * dc.capture_fraction.value
-        if os.environ.get("HEATOS_SUPPLY_SCALE", "config") != "team":
+        if os.environ.get("HEATOS_SUPPLY_SCALE", "team") != "team":
             k = cap / max(_supply(site)[1].max(), 1e-6)            # team shape, config magnitude
             p10, p50, p90 = p10 * k, p50 * k, p90 * k
         else:
@@ -246,7 +246,7 @@ class TeamSupplyProvider(mocks.MockSupplyProvider):
                               p95=np.round(p95, 2).tolist(), supply_temp_c=np.round(temp, 2).tolist())
 
     def model_card(self) -> ModelCard:
-        scale = os.environ.get("HEATOS_SUPPLY_SCALE", "config")
+        scale = os.environ.get("HEATOS_SUPPLY_SCALE", "team")
         val = MODELS / "demand_model_validation.txt"
         multi = val.exists() and "Multi-source trace model" in val.read_text()
         traces = (["Google powerdata_2019", "Alibaba cluster-trace 2018", "Alibaba PAI GPU 2020", "Microsoft Philly GPU",
