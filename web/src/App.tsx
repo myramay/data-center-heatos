@@ -33,16 +33,16 @@ function Legend() {
     ? [["#3b2a8f", "low heat use"], ["#22d3ee", ""], ["#f5a524", ""], ["#ff3b3b", "high heat use"]]
     : [["#ff7a1a", "on network heat"], ["#f7b500", "drawing on storage"], ["#e5262b", "on backup boiler"], ["#7f97b8", "not connected"], ["#f2f4f7", "other buildings"]];
   return (
-    <div className="absolute left-3 bottom-3 z-10 flex flex-wrap max-w-[calc(100vw-var(--sw)-40px)] items-center gap-3 px-3 py-1.5 glass" style={{ borderRadius: 10 }}>
+    <div className="absolute left-3 bottom-3 z-10 flex flex-wrap max-w-[calc(100vw-var(--sw)-40px)] items-center gap-x-4 gap-y-2 px-4 py-2.5 glass" style={{ borderRadius: 12 }}>
       {items.map(([c, l], i) => (
-        <span key={i} className="flex items-center gap-1.5 text-[10.5px] text-ink-2">
-          <span className="w-2.5 h-2.5 rounded-sm" style={{ background: c, border: "1px solid rgb(255 255 255 / 0.25)" }} />{l}
+        <span key={i} className="flex items-center gap-2 text-[13px] text-ink">
+          <span className="w-4 h-4 rounded" style={{ background: c, border: "1px solid rgb(255 255 255 / 0.25)" }} />{l}
         </span>
       ))}
-      {step !== "analyze" && <span className="flex items-center gap-1.5 text-[10.5px] text-ink-2"><span className="w-2.5 h-2.5 rounded-full" style={{ background: "#ffb04a", boxShadow: "0 0 6px #ffb04a" }} />heat moving</span>}
-      <span className="w-px h-4 bg-line" />
+      {step !== "analyze" && <span className="flex items-center gap-2 text-[13px] text-ink"><span className="w-4 h-4 rounded-full" style={{ background: "#ffb04a", boxShadow: "0 0 8px #ffb04a" }} />heat moving</span>}
+      <span className="w-px h-5 bg-line" />
       {([["showInfra", "Infrastructure", showInfra], ["showTeam", "Team plan routes", showTeam]] as const).map(([k, label, on]) => (
-        <button key={k} onClick={() => toggle(k)} className={`text-[10.5px] px-1.5 py-0.5 rounded border ${on ? "border-accent text-ink bg-accent/10" : "border-line text-ink-3"}`}>{label}</button>
+        <button key={k} onClick={() => toggle(k)} className={`text-[12.5px] px-2.5 py-1 rounded-md border ${on ? "border-accent text-ink bg-accent/10" : "border-line text-ink-3"}`}>{label}</button>
       ))}
     </div>
   );
@@ -72,7 +72,7 @@ export default function App() {
           </motion.div>
         )}
       </AnimatePresence>
-      <div className="absolute right-[calc(var(--sw)+24px)] bottom-3 z-10 text-[9.5px] text-ink-3/90 px-1.5 py-0.5 rounded" style={{ background: "rgb(255 255 255 / 0.55)", color: "#4b5563" }}>
+      <div className="absolute right-[calc(var(--sw)+24px)] top-[78px] z-10 text-[9.5px] text-ink-3/90 px-1.5 py-0.5 rounded" style={{ background: "rgb(255 255 255 / 0.55)", color: "#4b5563" }}>
         Geography: US Census Bureau · Buildings © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors
       </div>
       <DemoController />

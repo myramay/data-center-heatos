@@ -12,9 +12,9 @@ function Clock() {
   const time = d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
   return (
     <div className="leading-tight">
-      <div className="num text-[15px] font-semibold">{time} <span className="text-ink-3 text-[11px] font-normal hidden xl:inline">{date}</span></div>
+      <div className="num text-[15px] font-semibold">{time} <span className="text-ink-3 text-[11px] font-normal hidden 2xl:inline">{date}</span></div>
       <div className="num text-[10.5px] text-ink-3">
-        hour {f.hour_index + 1}/{f.hours_total} · {f.weather.t_out_c.toFixed(1)}°C outside
+        hour {f.hour_index + 1}/{f.hours_total} · {f.weather.t_out_c.toFixed(1)}°C
       </div>
     </div>
   );
@@ -24,7 +24,7 @@ export function TopBar() {
   const s = useStore();
   const switchSite = (site: SiteId) => { if (site !== s.site) void s.setSite(site); };
   return (
-    <div className="glass absolute top-3 left-3 right-3 h-[60px] flex items-center gap-3 px-3 z-30 whitespace-nowrap">
+    <div className="glass absolute top-3 left-3 right-3 h-[60px] flex items-center gap-2 px-3 z-30 whitespace-nowrap">
       <div className="flex items-center gap-2.5 pr-2">
         <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden>
           <defs><linearGradient id="fl" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stopColor="#ff3b3b" /><stop offset="0.6" stopColor="#f5a524" /><stop offset="1" stopColor="#22d3ee" /></linearGradient></defs>
@@ -67,7 +67,7 @@ export function TopBar() {
           const done = STEPS.findIndex((x) => x.id === s.step) > i;
           return (
             <button key={st.id} onClick={() => s.setStep(st.id)}
-                    className={`flex items-center gap-1.5 px-2 py-1.5 rounded-md text-[12.5px] ${active ? "text-ink bg-white/10" : done ? "text-ink-2" : "text-ink-3 hover:text-ink-2"}`}>
+                    className={`flex items-center gap-1.5 px-1.5 py-1.5 rounded-md text-[12.5px] ${active ? "text-ink bg-white/10" : done ? "text-ink-2" : "text-ink-3 hover:text-ink-2"}`}>
               <span className={`num w-4 h-4 rounded-full grid place-items-center text-[9.5px] ${active ? "bg-accent text-void" : done ? "bg-white/25 text-void" : "border border-line"}`}>{i + 1}</span>
               <span className={active ? "font-semibold" : "hidden lg:inline"}>{st.label}</span>
             </button>

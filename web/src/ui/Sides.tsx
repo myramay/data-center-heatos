@@ -208,13 +208,13 @@ export function ConfidencePanel() {
   return (
     <Panel className="h-full" title="Confidence" right={<VerdictBadge v={f?.verdict ?? null} />}>
       <div className="px-4 pb-4 overflow-y-auto scroll-thin min-h-0 flex-1">
-        <div className="flex justify-center -mt-1">
+        <div className="flex items-center gap-3">
           <Gauge value={conf?.p_all_warm ?? null} second={f?.jev?.p_supply_meets_guarantees ?? null}
-                 label="P(everyone on network heat, next 48 h)" secondLabel="Jev" size={220} />
+                 label="P(everyone on network heat, next 48 h)" secondLabel="Jev" size={112} />
+        <div className="text-[11px] text-ink-2 leading-snug">P(every connected building stays on network heat, next 48 h)
+          <div className="text-[10px] text-ink-3 mt-0.5">arc: HeatOS Monte Carlo ({conf?.n_futures ?? "–"} futures) · <span style={{ color: "#c3b8ff" }}>needle: Jev {f?.jev ? `says ${Math.round(f.jev.p_supply_meets_guarantees * 100)}% (${Math.round(f.jev.latency_ms)} ms)` : "not answering: Monte Carlo only"}</span></div></div>
         </div>
-        <div className="text-center text-[11px] text-ink-2 -mt-2 mb-3">P(every connected building stays on network heat, next 48 h)
-          <div className="text-[10px] text-ink-3">arc: HeatOS Monte Carlo ({conf?.n_futures ?? "–"} futures) · <span style={{ color: "#c3b8ff" }}>needle: Jev {f?.jev ? `says ${Math.round(f.jev.p_supply_meets_guarantees * 100)}% (${Math.round(f.jev.latency_ms)} ms)` : "not answering: Monte Carlo only"}</span></div></div>
-        <div className="grid grid-cols-3 gap-2 text-center -mt-1">
+        <div className="grid grid-cols-3 gap-2 text-center mt-3">
           <div><div className="label">Unmet h</div><div className="num text-[15px]">{conf ? conf.expected_unmet_hours.toFixed(1) : "–"}</div></div>
           <div><div className="label">Futures</div><div className="num text-[15px]">{conf?.n_futures ?? "–"}</div></div>
           <div><div className="label">Jev play</div><div className="text-[11px] text-ink-2 mt-1">{f?.jev ? `${f.jev.playbook.replace(/_/g, " ")} (${Math.round(f.jev.playbook_probability * 100)}%)` : "waiting / offline"}</div></div>

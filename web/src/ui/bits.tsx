@@ -62,7 +62,7 @@ export function Gauge({ value, second, size = 200, label, secondLabel }: {
         {value == null ? "…" : `${Math.round(v * 100)}%`}
       </text>
       {second != null && secondLabel && (
-        <text x={cx} y={cy + size * 0.12} textAnchor="middle" fill="#c3b8ff" fontSize={11} className="num">
+        <text x={cx} y={cy + size * 0.12} textAnchor="middle" fill="#c3b8ff" fontSize={Math.max(9, Math.min(11, size * 0.075))} className="num">
           {secondLabel} {Math.round(second * 100)}%
         </text>
       )}
