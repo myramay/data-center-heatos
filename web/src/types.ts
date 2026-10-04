@@ -14,7 +14,7 @@ export type Playbook =
   | "draw_storage" | "start_steam_hp" | "start_backup" | "shift_compute" | "curtail_cooling_export";
 export type Verdict = "ACT" | "REVIEW" | "ESCALATE";
 export type ConnectionOption =
-  | "direct_link" | "loop_hp" | "steam_hp" | "direct_use" | "booster" | "not_connected";
+  | "direct_link" | "loop_hp" | "steam_hp" | "direct_use" | "booster" | "central_hp" | "not_connected";
 
 export interface Building {
   id: string;

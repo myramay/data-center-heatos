@@ -100,6 +100,10 @@ class Loop(_Section):
     direct_use_margin_c: Param
     sells_cooling: bool
     cooling_cop: Param | None = None
+    # how heat reaches buildings: shared ambient loop + building heat pumps, or a hot-water network fed by one
+    # central heat pump at the data center (team transport_optimization.py: the most efficient method in Chelsea)
+    delivery: Literal["ambient", "central_hot_water"] = "ambient"
+    central_supply_c: Param | None = None
 
 
 class HeatPumps(_Section):

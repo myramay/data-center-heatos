@@ -182,7 +182,11 @@ export interface TransportOption {
   net_co2_t_p10: number | null; net_co2_t_p50: number | null; system_net_musd_p10: number | null; system_net_musd_p50: number | null;
   p_everyone_warm: number | null; p_every_party_profits: number | null; abatement_usd_per_t_p50: number | null;
 }
-export interface Transport { options: TransportOption[]; best: Partial<Record<"cost-optimal" | "carbon-weighted", string>>; method: string; error?: string }
+export interface TransportCompany {
+  company: string; role: string; role_label: string; assets: string[]; fits_method: string; note: string | null;
+  source_url: string | null; distance_m?: number | null; status?: string | null; confidence?: string | null;
+}
+export interface Transport { companies?: TransportCompany[]; options: TransportOption[]; best: Partial<Record<"cost-optimal" | "carbon-weighted", string>>; method: string; error?: string }
 
 export interface Bundle {
   site: SiteId;
@@ -190,7 +194,7 @@ export interface Bundle {
     name: string; address: string; owner: string; recommended: boolean;
     data_center: { name: string; capacity_mw_th: number; capture_fraction: number; liquid_cooled: boolean;
                    compute_follows_heat: boolean; flexible_compute_share: number };
-    loop: { type: string; supply_temp_c: number; return_temp_c: number; sells_cooling: boolean };
+    loop: { type: string; delivery?: string; supply_temp_c: number; return_temp_c: number; sells_cooling: boolean };
     storage: { id: string; type: string; capacity_mwh: number }[];
     parties: { id: string; name: string; role: string }[];
     electricity_usd_per_mwh: number;

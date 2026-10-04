@@ -107,13 +107,17 @@ def build_network(cfg: SiteConfig, buildings: list[Building], plan: Plan,
         if it.option == "direct_link":
             kind.append(KIND_DIRECT if b.required_supply_temp_c <= dc_t - margin else KIND_HP)
             from_dc.append(True)
+        elif it.option == "central_hp":
+            kind.append(KIND_HP)                  # lift happens at the central plant, straight from data center water
+            from_dc.append(True)
         elif it.option == "direct_use":
             kind.append(KIND_DIRECT if b.required_supply_temp_c <= loop_t - margin else KIND_HP)
             from_dc.append(False)
         else:
             kind.append({"loop_hp": KIND_HP, "steam_hp": KIND_STEAM_HP, "booster": KIND_BOOSTER}[it.option])
             from_dc.append(False)
-        hot.append(cfg.heat_pumps.steam_hp_t_hot_c.value if it.option == "steam_hp"
+        hot.append(cfg.loop.central_supply_c.value if it.option == "central_hp"
+                   else cfg.heat_pumps.steam_hp_t_hot_c.value if it.option == "steam_hp"
                    else booster_t if it.option == "booster" else b.required_supply_temp_c)
 
     def fuel_param(table, b, default):
@@ -137,7 +141,8 @@ def build_network(cfg: SiteConfig, buildings: list[Building], plan: Plan,
         backup_eff=np.array([(cfg.backup_efficiency.get(b.heating_system) or cfg.backup_efficiency["unknown"]).value for b in bs]),
         fuel_usd_per_mwh=np.array([elec if b.heating_system == "electric" else fuel_param(cfg.prices.fuels_usd_per_mwh, b, 50.0) for b in bs]),
         fuel_t_per_mwh=np.array([fuel_param(cfg.emissions.fuels_t_per_mwh, b, 0.181) for b in bs]),
-        cooling_kw_per_k=np.array([COOLING_W_PER_M2K.get(b.use_type, 0.0) * b.floor_area_m2 / 1000 if sells_cooling else 0.0 for b in bs]),
+        cooling_kw_per_k=np.array([COOLING_W_PER_M2K.get(b.use_type, 0.0) * b.floor_area_m2 / 1000
+                                     if sells_cooling and it.option != "central_hp" else 0.0 for it, b in zip(items, bs)]),
         storages=[StorageSpec(
             id=s.id, type=s.type, capacity_kwh=s.capacity_mwh.value * 1000,
             min_kwh=s.capacity_mwh.value * 1000 * s.min_soc_fraction.value,

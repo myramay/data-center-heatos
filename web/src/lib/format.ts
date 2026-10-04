@@ -14,7 +14,7 @@ export const titleCase = (s: string) => s.replace(/_/g, " ").replace(/\b\w/g, (c
 
 export const OPTION_LABEL: Record<string, string> = {
   direct_link: "Direct link", loop_hp: "Loop + heat pump", steam_hp: "Steam heat pump",
-  direct_use: "Direct use", booster: "Loop + booster", not_connected: "Not connected",
+  direct_use: "Direct use", booster: "Loop + booster", central_hp: "Hot-water network", not_connected: "Not connected",
 };
 
 // Thermal ramp: deep indigo -> cyan -> amber -> red-hot (for heat in the 3D scene).

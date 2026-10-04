@@ -206,6 +206,47 @@ def team_overlay(site: SiteId) -> dict | None:
 
 
 TRANSPORT = ROOT / "outputs" / "transport" / "options_summary.csv"
+ROLE_LABEL = {"utility_infrastructure": "Utility network (pilot)", "existing_heat_network": "Existing heat network",
+              "thermal_plant": "Campus thermal plant", "third_party_heat_source": "Third-party heat source",
+              "potential_anchor_sink": "Anchor heat buyer", "third_party_anchor": "Third-party anchor", "incumbent": "Incumbent supplier"}
+# third parties named in the team's METHODOLOGY.md that are not in the Site 1 infrastructure inventory
+METHODOLOGY_PARTIES = {
+    "lansing": [
+        {"company": "Cornell University", "role": "third_party_anchor", "assets": ["Cornell central heating plant (~30 km route)"],
+         "fits_method": "17 km insulated transmission main", "note": "Team model: transmission main to a third-party anchor; "
+         "not viable at today's costs (median system net about -$12M/yr).", "source_url": "METHODOLOGY.md"},
+        {"company": "NYSEG", "role": "incumbent", "assets": ["Natural gas distribution (33% of homes)"],
+         "fits_method": "incumbent / backup heat", "note": "Incumbent gas utility; with trucked oil and propane, the heat the network displaces.",
+         "source_url": "METHODOLOGY.md"},
+    ],
+}
+
+
+def transport_companies(site: SiteId) -> list[dict]:
+    """Third parties for the heat transport, from the team's GitHub data: the reviewed infrastructure inventory
+    (data/infrastructure, Site 1, grouped by operator) plus the third-party anchors in METHODOLOGY.md."""
+    out: dict[str, dict] = {}
+    if INFRA.exists():
+        for f in json.loads(INFRA.read_text()).get("features", []):
+            pr = f.get("properties", {})
+            if pr.get("site_id") != site:
+                continue
+            op = pr.get("operator_if_known") or "unknown"
+            key = op if op != "unknown" else pr.get("asset_name")
+            row = out.setdefault(key, {"company": op if op != "unknown" else pr.get("asset_name"), "role": pr.get("role"),
+                                       "assets": [], "fits_method": ", ".join(t.replace("_", " ") for t in (pr.get("candidate_transport_types") or [])),
+                                       "note": pr.get("evidence_note"), "source_url": pr.get("source_url"),
+                                       "distance_m": pr.get("distance_m"), "status": pr.get("existing_or_proposed"),
+                                       "confidence": pr.get("confidence")})
+            row["assets"].append(pr.get("asset_name"))
+    rows = list(out.values()) + METHODOLOGY_PARTIES.get(site, [])
+    for r in rows:
+        r["role_label"] = ROLE_LABEL.get(r.get("role") or "", (r.get("role") or "").replace("_", " "))
+    order = ["utility_infrastructure", "existing_heat_network", "third_party_anchor", "thermal_plant", "third_party_heat_source",
+             "potential_anchor_sink", "incumbent"]
+    return sorted(rows, key=lambda r: (order.index(r["role"]) if r.get("role") in order else 99, r.get("distance_m") or 1e9))
+
+
 TRANSPORT_LABEL = {
     "4gdh_hot_water": "New hot-water network (65-70 C), central heat pump",
     "5gdh_ambient": "Ambient loop (~25 C), heat pump in each building",
@@ -246,7 +287,7 @@ def transport_options(site: SiteId) -> dict | None:
         reliable = [r for r in cand if (r["p_everyone_warm"] or 0) >= 0.9 and (r["p_every_party_profits"] or 0) >= 0.5] or cand
         if reliable:
             best[obj] = max(reliable, key=lambda r: r["system_net_musd_p50"])["option"]
-    return {"options": rows, "best": best,
+    return {"options": rows, "best": best, "companies": transport_companies(site),
             "method": "each method designed twice (carbon $0 and $190/t), then 1,000 Monte Carlo draws of weather, "
                       "data-center output, demand, prices, costs and pipe failures; best = highest median system net value "
                       "among designs with P(everyone warm) >= 90% and P(every party profits) >= 50%"}

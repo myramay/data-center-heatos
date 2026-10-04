@@ -33,7 +33,7 @@ Playbook = Literal[
 ]
 Verdict = Literal["ACT", "REVIEW", "ESCALATE"]
 ConnectionOption = Literal[
-    "direct_link", "loop_hp", "steam_hp", "direct_use", "booster", "not_connected",
+    "direct_link", "loop_hp", "steam_hp", "direct_use", "booster", "central_hp", "not_connected",
 ]
 
 Probability = Field(ge=0.0, le=1.0)

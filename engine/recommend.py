@@ -73,6 +73,8 @@ class BuildingEval:
 def candidate_options(cfg: SiteConfig, b: Building) -> list[ConnectionOption]:
     if cfg.site.id == "lansing":
         return ["booster" if b.use_type == "home" else "direct_use"]
+    if cfg.loop.delivery == "central_hot_water":
+        return ["central_hp", "loop_hp"]          # loop_hp kept only as the comparison shown in Why?
     opts: list[ConnectionOption] = ["loop_hp"]
     if b.street_distance_m < cfg.loop.direct_link_max_m.value:
         opts.append("direct_link")
@@ -117,6 +119,14 @@ def evaluate_option(cfg: SiteConfig, b: Building, option: ConnectionOption, pipe
         hp_share = 1.0
         if steam:
             note = "includes converting steam radiators to hot water"
+    elif option == "central_hp":
+        # one large heat pump at the data center lifts its cooling water to the network temperature;
+        # the building only needs a heat-exchanger substation (plus radiator conversion if on steam)
+        t_net = cfg.loop.central_supply_c.value
+        cop = _cop(hp.eta.value, t_net, dc_t)
+        capex = station + conversion + kw * cap["central_hp_usd_per_kw"]
+        hp_share = 1.0
+        note = "substation on a 65-70 C hot-water network; heat pump is central at the data center"
     elif option == "steam_hp":
         cop = _cop(hp.steam_hp_eta.value, hp.steam_hp_t_hot_c.value, loop_t)
         capex = station + kw * cap["steam_hp_usd_per_kw"]
@@ -138,7 +148,9 @@ def evaluate_option(cfg: SiteConfig, b: Building, option: ConnectionOption, pipe
     elec = heat * hp_share / cop if cop else 0.0
     draw = heat - elec
     loss = cfg.loop.pipe_loss_per_km.value * pipe_m / 1000
-    if cfg.loop.type == "ambient_two_way":
+    if option == "central_hp":
+        loss *= max(cfg.loop.central_supply_c.value - cfg.loop.ambient_loss_ref_c, 0) / cfg.loop.ambient_loss_span_c
+    elif cfg.loop.type == "ambient_two_way":
         loss *= max(loop_t - cfg.loop.ambient_loss_ref_c, 0) / cfg.loop.ambient_loss_span_c
     draw *= 1 + loss
     eff = (cfg.backup_efficiency.get(b.heating_system) or cfg.backup_efficiency["unknown"]).value
@@ -162,7 +174,10 @@ def evaluate_building(cfg: SiteConfig, b: Building, pipe_m: float | None = None,
                       use_carbon: bool = True) -> BuildingEval:
     pipe_m = b.street_distance_m if pipe_m is None else pipe_m
     opts = [evaluate_option(cfg, b, o, pipe_m, use_carbon) for o in candidate_options(cfg, b)]
-    best = max(opts, key=lambda o: o.npv_value_usd)
+    if cfg.loop.delivery == "central_hot_water":
+        best = next(o for o in opts if o.option == "central_hp")      # site-wide delivery method is fixed
+    else:
+        best = max(opts, key=lambda o: o.npv_value_usd)
     return BuildingEval(b.id, opts, best if best.npv_value_usd > 0 else None)
 
 
@@ -315,6 +330,8 @@ def quick_plan(site: SiteId, buildings: Sequence[Building]) -> Plan:
         used_kw += peak_kw * loop_draw_share
         if site == "lansing":
             option = "booster" if b.use_type == "home" else "direct_use"
+        elif cfg.loop.delivery == "central_hot_water":
+            option = "central_hp"
         elif b.street_distance_m < cfg.loop.direct_link_max_m.value:
             option = "direct_link"
         elif b.heating_system == "steam":

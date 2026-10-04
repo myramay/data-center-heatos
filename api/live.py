@@ -140,7 +140,7 @@ def bundle(site: SiteId) -> dict:
                             "liquid_cooled": cfg.data_center.liquid_cooled,
                             "compute_follows_heat": cfg.data_center.compute_follows_heat,
                             "flexible_compute_share": cfg.data_center.flexible_compute_share.value},
-            "loop": {"type": cfg.loop.type, "supply_temp_c": cfg.loop.supply_temp_c.value,
+            "loop": {"type": cfg.loop.type, "delivery": cfg.loop.delivery, "supply_temp_c": cfg.loop.supply_temp_c.value,
                      "return_temp_c": cfg.loop.return_temp_c.value, "sells_cooling": cfg.loop.sells_cooling},
             "storage": [{"id": s.id, "type": s.type, "capacity_mwh": s.capacity_mwh.value} for s in cfg.storage],
             "parties": [{"id": p.id, "name": p.name, "role": p.role} for p in cfg.parties],

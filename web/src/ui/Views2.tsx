@@ -81,7 +81,7 @@ export function PhysicsView() {
         <Node x={182} y={121} title="Heat exchanger" value={`${num(p.dc_used_kw)} kW`} sub="taken by the network" accent="#ff8a3d" />
         <Node x={20} y={262} title="Own cooling" value={`${num(p.dc_fallback_kw)} kW`} sub="data center always protected" accent="#8a94ab" />
         {ambient && <Node x={118} y={32} title="Office cooling in" value={`${num(p.cooling_in_kw)} kW`} sub="two-way loop" accent="#67e8f9" />}
-        <Node x={352} y={121} title={ambient ? "Ambient loop" : "Warm loop"} value={`${p.loop_supply_c}° → ${p.loop_return_c}°C`} sub={`${num(p.flow_m3h)} m³/h · pump ${num(p.pump_kw)} kW`} accent="#3987e5" />
+        <Node x={352} y={121} title={bundle?.config.loop.delivery === "central_hot_water" ? "Hot-water network" : ambient ? "Ambient loop" : "Warm loop"} value={`${p.loop_supply_c}° → ${p.loop_return_c}°C`} sub={`${num(p.flow_m3h)} m³/h · pump ${num(p.pump_kw)} kW`} accent="#3987e5" />
         <Node x={352} y={250} title="Storage" value={`${Math.round((soc / cap) * 100)}% full`} sub={`${p.storage_out_kw > 1 ? `out ${num(p.storage_out_kw)}` : `in ${num(p.storage_in_kw)}`} kW`} accent="#199e70" />
         <Node x={352} y={30} w={128} h={48} title="Pipe losses" value={`${num(p.pipe_loss_kw, 1)} kW`} accent="#6b7690" />
         <Node x={522} y={121} title="Heat pumps" value={p.cop_avg ? `COP ${p.cop_avg.toFixed(2)}` : "direct use"} sub="lift loop heat to building temp." accent="#c3b8ff" />
@@ -544,6 +544,28 @@ export function TransportView() {
       </div>
       {dead.length > 0 && (
         <div className="text-[11px] text-ink-3 mt-2">Not viable here (no building worth connecting): {dead.map((r) => r.label).join("; ")}.</div>
+      )}
+      {(T.companies?.length ?? 0) > 0 && (
+        <>
+          <div className="label mt-5 mb-1.5">Who could build and run it · third-party heat transport</div>
+          <div className="grid grid-cols-2 gap-2">
+            {T.companies!.map((c) => (
+              <a key={c.company + c.role} href={c.source_url?.startsWith("http") ? c.source_url : undefined} target="_blank" rel="noreferrer"
+                 className="block p-2.5 rounded-lg border border-line bg-white/5 hover:bg-white/10">
+                <div className="flex items-center gap-2">
+                  <span className="text-[12.5px] font-semibold">{c.company}</span>
+                  <span className="ml-auto shrink-0"><Chip color="#86b6ef">{c.role_label}</Chip></span>
+                </div>
+                <div className="text-[11px] text-ink-2 mt-1 leading-snug">{c.assets.join(" · ")}</div>
+                {c.note && <div className="text-[10.5px] text-ink-3 mt-1 leading-snug">{c.note}</div>}
+                <div className="text-[10px] mt-1" style={{ color: "#c3b8ff" }}>
+                  {c.distance_m ? `${num(c.distance_m)} m away · ` : ""}{c.status ? `${c.status} · ` : ""}fits: {c.fits_method}
+                  {c.source_url?.startsWith("http") ? " · source ↗" : c.source_url ? ` · ${c.source_url}` : ""}
+                </div>
+              </a>
+            ))}
+          </div>
+        </>
       )}
       <div className="text-[10.5px] text-ink-3 mt-3 leading-snug">
         Method: {T.method}. Heat cost = levelised cost of delivered heat; tariff = what buyers would pay (their current cost minus a discount).

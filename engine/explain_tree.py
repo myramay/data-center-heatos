@@ -39,6 +39,7 @@ NUMERIC = [
 LABELS = {
     "direct_link": "Direct link to the data center", "loop_hp": "Loop + building heat pump",
     "steam_hp": "Steam heat pump", "direct_use": "Direct use of warm loop", "booster": "Warm loop + hot-water booster",
+    "central_hp": "Hot-water network (65-70 C) from a central heat pump",
     "not_connected": "Not connected",
 }
 

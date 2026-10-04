@@ -69,6 +69,11 @@ RISKS = {
     ],
 }
 
+# phase 2 text when Chelsea delivers through the central hot-water network (loop.delivery = central_hot_water)
+CENTRAL_PHASE2 = ("Network and storage expansion",
+                  "Extend the 70 C hot-water network along the street grid from the central heat pump at 111 8th Ave, "
+                  "adding storage so the heat pump runs steadily through cold snaps.")
+
 PHASES = {
     "chelsea": [
         ("Pilot with public housing and guaranteed buildings",
@@ -149,7 +154,10 @@ def build_report(site: SiteId, live_sim=None, confidence: ConfidenceResult | Non
                       "result": _scenario_result(site, test, base_runs) if test in names else None})
 
     phases = []
-    for n, (title, text) in enumerate(PHASES[site], start=1):
+    phase_text = list(PHASES[site])
+    if load_site(site).loop.delivery == "central_hot_water":
+        phase_text[1] = CENTRAL_PHASE2
+    for n, (title, text) in enumerate(phase_text, start=1):
         phases.append({"n": n, "title": title, "text": text,
                        "buildings": [by_id[i.building_id].name for i in plan.items if i.connect and i.phase == n]})
 

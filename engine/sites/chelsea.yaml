@@ -38,6 +38,8 @@ loop:
   ambient_loss_span_c: 40.0
   direct_link_max_m: {value: 100.0, source: "challenge spec: direct HX link under ~100 m"}
   direct_use_margin_c: {value: 5.0, source: "approach temperature; assumption - verify"}
+  delivery: central_hot_water       # team decision: transport_optimization.py ranks this first in Chelsea
+  central_supply_c: {value: 70.0, range: [65.0, 70.0], source: "4th-generation district heating supply temperature (team transport model)"}
   sells_cooling: true
   cooling_cop: {value: 6.0, source: "building heat pump in cooling mode; assumption - verify"}
 
@@ -103,6 +105,7 @@ finance:
 capex:
   heat_pump_usd_per_kw: {value: 800.0, source: "challenge spec placeholder"}
   steam_hp_usd_per_kw: {value: 1200.0, source: "challenge spec placeholder"}
+  central_hp_usd_per_kw: {value: 700.0, range: [500.0, 900.0], source: "large central heat pump at the energy centre (team transport model range)"}
   direct_link_usd: {value: 150000.0, source: "challenge spec placeholder"}
   pipe_usd_per_m: {value: 1500.0, source: "ambient loop, challenge spec placeholder"}
   transfer_station_anchor_usd: {value: 350000.0, range: [300000.0, 400000.0], source: "FPCJ anchor: $300-400k transfer station for a 26,000 sq ft building"}

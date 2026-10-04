@@ -103,6 +103,9 @@ def capex_lines(sim: "Simulation", terms: DealTerms) -> list[CapexLine]:
             elif it.option == "steam_hp":
                 lines.append(CapexLine("con_ed", f"steam heat pump {b.id}", kw * cap["steam_hp_usd_per_kw"], i, None))
                 equip = 0.0
+            elif it.option == "central_hp":
+                lines.append(CapexLine("con_ed", f"central heat pump share {b.id}", kw * cap["central_hp_usd_per_kw"], i, None))
+                equip = cap.get("hydronic_conversion_usd_per_m2", 0.0) * b.floor_area_m2 if b.heating_system == "steam" else 0.0
             else:
                 equip = hp
             cost = station + equip
@@ -112,7 +115,8 @@ def capex_lines(sim: "Simulation", terms: DealTerms) -> list[CapexLine]:
                     lines.append(CapexLine(party, f"building equipment {b.id}", cost * (1 - terms.grant_share), i, cpace))
             else:
                 lines.append(CapexLine(party, f"building equipment {b.id}", cost, i, cpace))
-        lines.append(CapexLine("con_ed", "ambient loop pipe + pumps", pipe_m * cap["pipe_usd_per_m"], None, None))
+        lines.append(CapexLine("con_ed", ("hot-water network pipe + pumps" if cfg.loop.delivery == "central_hot_water"
+                                          else "ambient loop pipe + pumps"), pipe_m * cap["pipe_usd_per_m"], None, None))
         lines.append(CapexLine("con_ed", "storage (tanks + boreholes)", storage, None, None))
         lines.append(CapexLine("con_ed", "data center heat exchanger", cap["dc_heat_exchanger_usd"], None, None))
     else:
