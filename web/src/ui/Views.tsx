@@ -443,9 +443,11 @@ function ReportView() {
   return (
     <div>
       <div className="flex items-center gap-2 mb-3 sticky top-0 py-1 z-10" style={{ background: "rgb(11 16 32 / 0.9)" }}>
-        <button onClick={generate} disabled={busy} className="px-3 py-1.5 rounded-lg text-[12px] font-semibold text-void" style={{ background: "#ff8a3d" }}>
-          {busy ? "Generating…" : "Regenerate from live model"}
-        </button>
+        {live && (
+          <button onClick={generate} disabled={busy} className="px-3 py-1.5 rounded-lg text-[12px] font-semibold text-void" style={{ background: "#ff8a3d" }}>
+            {busy ? "Generating…" : "Regenerate from live model"}
+          </button>
+        )}
         {live && runId
           ? <a href={`${API}/report?run_id=${runId}&format=pdf`} className="px-3 py-1.5 rounded-lg text-[12px] border border-line bg-white/5 hover:bg-white/10">Download PDF</a>
           : <button onClick={() => window.print()} className="px-3 py-1.5 rounded-lg text-[12px] border border-line bg-white/5 hover:bg-white/10">Print / save PDF</button>}

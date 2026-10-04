@@ -6,6 +6,7 @@ export const API = (import.meta.env.VITE_API as string | undefined) ?? "http://l
 const WS = API.replace(/^http/, "ws");
 
 export async function backendUp(): Promise<boolean> {
+  if (API === "none") return false;            // static hosting (Vercel): replay the recorded runs only
   try {
     const ctl = new AbortController();
     const t = setTimeout(() => ctl.abort(), 1500);

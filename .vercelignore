@@ -1,0 +1,9 @@
+# Upload only what the static control room needs: the web app, recordings and the team plan files.
+/*
+!/web
+!/recordings
+!/out
+!/vercel.json
+/web/node_modules
+/web/dist
+/web/tsconfig.tsbuildinfo
