@@ -16,9 +16,13 @@ import os
 from datetime import datetime
 from typing import Protocol, Sequence, runtime_checkable
 
-from engine import mocks
-from engine.futures import EngineFutureSimulator
-from engine.contracts import (
+from engine.envfile import load_env
+
+load_env()                                  # local secrets (.env, git-ignored): Jev endpoint and key
+
+from engine import mocks  # noqa: E402
+from engine.futures import EngineFutureSimulator  # noqa: E402
+from engine.contracts import (  # noqa: E402
     Building, ConfidenceResult, DemandForecast, FutureInputs, FutureOutcome, JevOpinion, ModelCard,
     Plan, SiteId, SimState, SupplyForecast, SupplyScenario, WeatherScenario, WeatherSeries,
 )

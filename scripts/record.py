@@ -20,6 +20,7 @@ from pathlib import Path
 warnings.filterwarnings("ignore", category=UserWarning)
 
 from api.live import LiveRun, _jsonable, bundle, deal_report  # noqa: E402
+from engine import providers  # noqa: E402
 from engine.autopilot import compare_autopilots  # noqa: E402
 from engine.contracts import ConfidenceResult  # noqa: E402
 from engine.report import build_report  # noqa: E402
@@ -42,7 +43,12 @@ def record(site: str, scenario: str | None) -> dict:
             run.compute_confidence()
         if run.sim.h - run.jev_hour >= 3:
             run.jev_hour = run.sim.h
-            run._refresh_jev(run.sim.state())
+            for attempt in range(3):                      # Jev is a remote call: retry transient failures
+                run._refresh_jev(run.sim.state())
+                if run.jev is not None and run.jev.available:
+                    break
+                setattr(providers.JEV, "_down_until", 0.0)
+                time.sleep(1.0 + attempt)
         frames.append(run.step_frame())
     return {"site": site, "scenario": scenario, "fire_at": FIRE_AT if scenario else None, "hours": HOURS,
             "start": run.sim.inp.times[0].isoformat(), "recorded_at": datetime.now().isoformat(), "frames": frames,

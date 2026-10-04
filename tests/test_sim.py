@@ -43,9 +43,9 @@ def test_energy_balance_closes_every_hour(fixture, request):
 @pytest.mark.parametrize("site", ["chelsea", "lansing"])
 def test_year_runs_under_one_second(site):
     sim = Simulation(site, start=YEAR, hours=8760)       # data loading excluded
-    t = time.perf_counter()
+    t = time.process_time()                              # CPU time: not inflated by other busy programs
     sim.run()
-    assert time.perf_counter() - t < 1.0
+    assert time.process_time() - t < 1.0
 
 
 def test_balance_check_catches_a_broken_hour():
