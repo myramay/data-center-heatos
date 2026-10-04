@@ -1,0 +1,50 @@
+{
+  "url": "https://geocoding.geo.census.gov/geocoder/locations/address?street=227+W+27th+St&city=New+York&state=NY&zip=10001&benchmark=Public_AR_Current&format=json",
+  "retrieved_at": "2026-10-03T22:32:50.800411+00:00",
+  "sha256": "5cfee1e8f6bf17d303a7a00ee781b7ea289406414d22203fdbacd46d6e41e57d",
+  "response": {
+    "result": {
+      "input": {
+        "address": {
+          "zip": "10001",
+          "city": "New York",
+          "street": "227 W 27th St",
+          "state": "NY"
+        },
+        "benchmark": {
+          "isDefault": true,
+          "benchmarkDescription": "Public Address Ranges - Current Benchmark",
+          "id": "4",
+          "benchmarkName": "Public_AR_Current"
+        }
+      },
+      "addressMatches": [
+        {
+          "tigerLine": {
+            "side": "R",
+            "tigerLineId": "639429221"
+          },
+          "coordinates": {
+            "x": -73.994255065356,
+            "y": 40.746871615218
+          },
+          "addressComponents": {
+            "zip": "10001",
+            "streetName": "27TH",
+            "preType": "",
+            "city": "NEW YORK",
+            "preDirection": "W",
+            "suffixDirection": "",
+            "fromAddress": "201",
+            "state": "NY",
+            "suffixType": "ST",
+            "toAddress": "299",
+            "suffixQualifier": "",
+            "preQualifier": ""
+          },
+          "matchedAddress": "227 W 27TH ST, NEW YORK, NY, 10001"
+        }
+      ]
+    }
+  }
+}

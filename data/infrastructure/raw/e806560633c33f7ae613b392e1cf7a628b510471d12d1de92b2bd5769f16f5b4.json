@@ -1,0 +1,15 @@
+{
+  "url": "https://data.cityofnewyork.us/resource/64uk-42ks.json?%24where=borough%3D%27MN%27+AND+address%3D%2785+10+AVENUE%27&%24select=address%2Cbbl%2Clatitude%2Clongitude%2Cownername%2Cversion&%24limit=100",
+  "retrieved_at": "2026-10-03T22:32:49.340813+00:00",
+  "sha256": "1aafb1ee081c65734bddeb9eb42d46fd367cc1928fec84a1b87e1d662d993d36",
+  "response": [
+    {
+      "address": "85 10 AVENUE",
+      "bbl": "1006870029.00000000",
+      "latitude": "40.7433852",
+      "longitude": "-74.0079827",
+      "ownername": "85 TENTH AVENUE ASSOCIATES, L.L.C.",
+      "version": "26v2"
+    }
+  ]
+}

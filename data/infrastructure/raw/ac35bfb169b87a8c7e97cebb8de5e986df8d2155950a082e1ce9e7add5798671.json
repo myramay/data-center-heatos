@@ -1,0 +1,14 @@
+{
+  "url": "https://overpass-api.de/api/interpreter?data=%5Bout%3Ajson%5D%5Btimeout%3A25%5D%3B%28nwr%28around%3A2200%2C40.740704%2C-74.001844%29%5B%22power%22%3D%22plant%22%5D%3Bnwr%28around%3A2200%2C40.740704%2C-74.001844%29%5B%22man_made%22%3D%22wastewater_plant%22%5D%3Bnwr%28around%3A2200%2C40.740704%2C-74.001844%29%5B%22man_made%22%3D%22pumping_station%22%5D%3Bnwr%28around%3A2200%2C40.740704%2C-74.001844%29%5B%22man_made%22%3D%22pipeline%22%5D%5B%22substance%22~%22steam%7Chot_water%22%5D%3B%29%3Bout+center+tags%3B",
+  "retrieved_at": "2026-10-03T22:32:53.018568+00:00",
+  "sha256": "667523b8338a9d9522c066659d7387707f9478e08c23223ada1c4ff2a49f0286",
+  "response": {
+    "version": 0.6,
+    "generator": "Overpass API 0.7.62.11 87bfad18",
+    "osm3s": {
+      "timestamp_osm_base": "2026-10-03T22:31:20Z",
+      "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."
+    },
+    "elements": []
+  }
+}
