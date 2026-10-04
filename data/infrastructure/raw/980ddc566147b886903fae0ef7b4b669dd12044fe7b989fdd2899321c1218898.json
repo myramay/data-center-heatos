@@ -1,0 +1,21 @@
+{
+  "url": "https://data.cityofnewyork.us/resource/64uk-42ks.json?%24where=borough%3D%27MN%27+AND+address%3D%27251+MERCER+STREET%27&%24select=address%2Cbbl%2Clatitude%2Clongitude%2Cownername%2Cversion&%24limit=100",
+  "retrieved_at": "2026-10-03T22:32:50.164986+00:00",
+  "sha256": "3505e1153dd714553fd0567ea067ae0052551d49c0da812436c371dbeb9988d1",
+  "response": [
+    {
+      "address": "251 MERCER STREET",
+      "bbl": "1005358020.00000000",
+      "ownername": "NEW YORK UNIVERSITY",
+      "version": "26v2"
+    },
+    {
+      "address": "251 MERCER STREET",
+      "bbl": "1005350020.00000000",
+      "latitude": "40.7285665",
+      "longitude": "-73.9954467",
+      "ownername": "NEW YORK UNIVERSITY",
+      "version": "26v2"
+    }
+  ]
+}

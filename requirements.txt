@@ -1,0 +1,13 @@
+geopandas==1.2.0
+networkx==3.7
+numpy==2.5.3
+osmnx==2.1.1
+pandas==3.0.6
+pillow==12.3.0
+pyarrow==25.0.1
+pymupdf==1.28.2
+pyproj==3.8.0
+python-docx==1.2.0
+reportlab==5.0.1
+scipy==1.18.1
+shapely==2.1.2

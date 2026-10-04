@@ -1,0 +1,505 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "fulton-401-w16",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -74.004445411502,
+          40.74236190845
+        ]
+      },
+      "properties": {
+        "site_id": "chelsea",
+        "asset_id": "fulton-401-w16",
+        "asset_name": "Fulton Houses - 401 West 16th Street",
+        "asset_type": "public_housing",
+        "role": "potential_anchor_sink",
+        "latitude": 40.74236190845,
+        "longitude": -74.004445411502,
+        "distance_m": 286.388,
+        "distance_ring": "<= 500 m",
+        "technology": "proposed space-heating and domestic-hot-water connection",
+        "existing_or_proposed": "existing",
+        "temperature_C_if_known": null,
+        "capacity_MW_if_known": null,
+        "operator_if_known": "NYCHA",
+        "source_name": "www.coned.com",
+        "source_url": "https://www.coned.com/en/our-energy-future/our-energy-vision/where-we-are-going/thermal-energy-networks/chelsea",
+        "evidence_note": "Named by Con Edison as a proposed Chelsea TEN heat recipient. Existing housing; pilot connection remains proposed.",
+        "confidence": "MEDIUM",
+        "last_verified": "2026-10-03",
+        "coordinate_method": "US Census TIGER address-range interpolation; not equipment position",
+        "coordinate_source_url": "https://geocoding.geo.census.gov/geocoder/locations/address?street=401+W+16th+St&city=New+York&state=NY&zip=10011&benchmark=Public_AR_Current&format=json",
+        "coordinate_record_id": "59659718",
+        "location_scope": "facility_address",
+        "existing_network_flag": "unknown",
+        "connection_availability": "unknown",
+        "candidate_transport_types": [
+          "new_insulated_hot_water_loop",
+          "ambient_temperature_thermal_energy_network",
+          "multi_source_TEN"
+        ],
+        "related_asset_ids": [
+          "chelsea-ten-pilot"
+        ],
+        "capacity_basis": "usable thermal capacity; unknown"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "fulton-410-w17",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -74.004348402329,
+          40.742957343433
+        ]
+      },
+      "properties": {
+        "site_id": "chelsea",
+        "asset_id": "fulton-410-w17",
+        "asset_name": "Fulton Houses - 410 West 17th Street",
+        "asset_type": "public_housing",
+        "role": "potential_anchor_sink",
+        "latitude": 40.742957343433,
+        "longitude": -74.004348402329,
+        "distance_m": 327.563,
+        "distance_ring": "<= 500 m",
+        "technology": "proposed space-heating and domestic-hot-water connection",
+        "existing_or_proposed": "existing",
+        "temperature_C_if_known": null,
+        "capacity_MW_if_known": null,
+        "operator_if_known": "NYCHA",
+        "source_name": "www.coned.com",
+        "source_url": "https://www.coned.com/en/our-energy-future/our-energy-vision/where-we-are-going/thermal-energy-networks/chelsea",
+        "evidence_note": "Named by Con Edison as a proposed Chelsea TEN heat recipient. Existing housing; pilot connection remains proposed.",
+        "confidence": "MEDIUM",
+        "last_verified": "2026-10-03",
+        "coordinate_method": "US Census TIGER address-range interpolation; not equipment position",
+        "coordinate_source_url": "https://geocoding.geo.census.gov/geocoder/locations/address?street=410+W+17th+St&city=New+York&state=NY&zip=10011&benchmark=Public_AR_Current&format=json",
+        "coordinate_record_id": "59659716",
+        "location_scope": "facility_address",
+        "existing_network_flag": "unknown",
+        "connection_availability": "unknown",
+        "candidate_transport_types": [
+          "new_insulated_hot_water_loop",
+          "ambient_temperature_thermal_energy_network",
+          "multi_source_TEN"
+        ],
+        "related_asset_ids": [
+          "chelsea-ten-pilot"
+        ],
+        "capacity_basis": "usable thermal capacity; unknown"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "fulton-420-w17",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -74.004624912519,
+          40.743073905726
+        ]
+      },
+      "properties": {
+        "site_id": "chelsea",
+        "asset_id": "fulton-420-w17",
+        "asset_name": "Fulton Houses - 420 West 17th Street",
+        "asset_type": "public_housing",
+        "role": "potential_anchor_sink",
+        "latitude": 40.743073905726,
+        "longitude": -74.004624912519,
+        "distance_m": 352.609,
+        "distance_ring": "<= 500 m",
+        "technology": "proposed space-heating and domestic-hot-water connection",
+        "existing_or_proposed": "existing",
+        "temperature_C_if_known": null,
+        "capacity_MW_if_known": null,
+        "operator_if_known": "NYCHA",
+        "source_name": "www.coned.com",
+        "source_url": "https://www.coned.com/en/our-energy-future/our-energy-vision/where-we-are-going/thermal-energy-networks/chelsea",
+        "evidence_note": "Named by Con Edison as a proposed Chelsea TEN heat recipient. Existing housing; pilot connection remains proposed.",
+        "confidence": "MEDIUM",
+        "last_verified": "2026-10-03",
+        "coordinate_method": "US Census TIGER address-range interpolation; not equipment position",
+        "coordinate_source_url": "https://geocoding.geo.census.gov/geocoder/locations/address?street=420+W+17th+St&city=New+York&state=NY&zip=10011&benchmark=Public_AR_Current&format=json",
+        "coordinate_record_id": "59659716",
+        "location_scope": "facility_address",
+        "existing_network_flag": "unknown",
+        "connection_availability": "unknown",
+        "candidate_transport_types": [
+          "new_insulated_hot_water_loop",
+          "ambient_temperature_thermal_energy_network",
+          "multi_source_TEN"
+        ],
+        "related_asset_ids": [
+          "chelsea-ten-pilot"
+        ],
+        "capacity_basis": "usable thermal capacity; unknown"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "chelsea-85-tenth",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -74.0079827,
+          40.7433852
+        ]
+      },
+      "properties": {
+        "site_id": "chelsea",
+        "asset_id": "chelsea-85-tenth",
+        "asset_name": "85 10th Avenue - documented pilot heat-source building",
+        "asset_type": "industrial_waste_heat",
+        "role": "third_party_heat_source",
+        "latitude": 40.7433852,
+        "longitude": -74.0079827,
+        "distance_m": 596.95,
+        "distance_ring": "<= 1000 m",
+        "technology": "proposed excess-heat recovery",
+        "existing_or_proposed": "existing",
+        "temperature_C_if_known": null,
+        "capacity_MW_if_known": null,
+        "operator_if_known": "unknown",
+        "source_name": "www.coned.com",
+        "source_url": "https://www.coned.com/en/our-energy-future/our-energy-vision/where-we-are-going/thermal-energy-networks/chelsea",
+        "evidence_note": "Con Edison identifies this existing office building as the excess-heat source for its proposed Chelsea TEN. Heat recovery and third-party connection are not confirmed operational.",
+        "confidence": "MEDIUM",
+        "last_verified": "2026-10-03",
+        "coordinate_method": "NYC PLUTO parcel representative point",
+        "coordinate_source_url": "https://data.cityofnewyork.us/resource/64uk-42ks.json?%24where=borough%3D%27MN%27+AND+address%3D%2785+10+AVENUE%27&%24select=address%2Cbbl%2Clatitude%2Clongitude%2Cownername%2Cversion&%24limit=100",
+        "coordinate_record_id": "1006870029.00000000",
+        "location_scope": "facility_address",
+        "existing_network_flag": "unknown",
+        "connection_availability": "unknown",
+        "candidate_transport_types": [
+          "new_insulated_hot_water_loop",
+          "ambient_temperature_thermal_energy_network",
+          "multi_source_TEN"
+        ],
+        "related_asset_ids": [
+          "chelsea-ten-pilot"
+        ],
+        "capacity_basis": "usable thermal capacity; unknown"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "chelsea-ten-pilot",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -74.0079827,
+          40.7433852
+        ]
+      },
+      "properties": {
+        "site_id": "chelsea",
+        "asset_id": "chelsea-ten-pilot",
+        "asset_name": "Con Edison Chelsea TEN pilot",
+        "asset_type": "hot_water_network",
+        "role": "utility_infrastructure",
+        "latitude": 40.7433852,
+        "longitude": -74.0079827,
+        "distance_m": 596.95,
+        "distance_ring": "<= 1000 m",
+        "technology": "proposed thermal energy network",
+        "existing_or_proposed": "proposed",
+        "temperature_C_if_known": null,
+        "capacity_MW_if_known": null,
+        "operator_if_known": "Con Edison",
+        "source_name": "www.coned.com",
+        "source_url": "https://www.coned.com/en/our-energy-future/our-energy-vision/where-we-are-going/thermal-energy-networks/chelsea",
+        "evidence_note": "Proposed network linking the documented source building and three Fulton Houses buildings. Point marks the source address, not a surveyed route or connection.",
+        "confidence": "MEDIUM",
+        "last_verified": "2026-10-03",
+        "coordinate_method": "NYC PLUTO parcel representative point",
+        "coordinate_source_url": "https://data.cityofnewyork.us/resource/64uk-42ks.json?%24where=borough%3D%27MN%27+AND+address%3D%2785+10+AVENUE%27&%24select=address%2Cbbl%2Clatitude%2Clongitude%2Cownername%2Cversion&%24limit=100",
+        "coordinate_record_id": "1006870029.00000000",
+        "location_scope": "project_reference_point_not_route",
+        "existing_network_flag": false,
+        "connection_availability": "unknown",
+        "candidate_transport_types": [
+          "new_insulated_hot_water_loop",
+          "ambient_temperature_thermal_energy_network",
+          "multi_source_TEN"
+        ],
+        "related_asset_ids": [
+          "chelsea-85-tenth",
+          "fulton-401-w16",
+          "fulton-410-w17",
+          "fulton-420-w17"
+        ],
+        "capacity_basis": "usable thermal capacity; unknown"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "chelsea-recreation-pool",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -74.0022196,
+          40.7482958
+        ]
+      },
+      "properties": {
+        "site_id": "chelsea",
+        "asset_id": "chelsea-recreation-pool",
+        "asset_name": "Chelsea Recreation Center indoor pool",
+        "asset_type": "pool",
+        "role": "potential_anchor_sink",
+        "latitude": 40.7482958,
+        "longitude": -74.0022196,
+        "distance_m": 844.762,
+        "distance_ring": "<= 1000 m",
+        "technology": "pool and building hot-water loads",
+        "existing_or_proposed": "existing",
+        "temperature_C_if_known": null,
+        "capacity_MW_if_known": null,
+        "operator_if_known": "NYC Parks",
+        "source_name": "nycgovparks.org",
+        "source_url": "https://nycgovparks.org/facilities/recreationcenters/M260",
+        "evidence_note": "NYC Parks lists this recreation center and pool. Pool and hot-water loads motivate anchor screening; heat demand, current equipment and tie-in feasibility are unverified.",
+        "confidence": "MEDIUM",
+        "last_verified": "2026-10-03",
+        "coordinate_method": "NYC PLUTO parcel representative point",
+        "coordinate_source_url": "https://data.cityofnewyork.us/resource/64uk-42ks.json?%24where=borough%3D%27MN%27+AND+address%3D%27430+WEST+25+STREET%27&%24select=address%2Cbbl%2Clatitude%2Clongitude%2Cownername%2Cversion&%24limit=100",
+        "coordinate_record_id": "1007220057.00000000",
+        "location_scope": "facility_address",
+        "existing_network_flag": "unknown",
+        "connection_availability": "unknown",
+        "candidate_transport_types": [
+          "new_insulated_hot_water_loop",
+          "ambient_temperature_thermal_energy_network",
+          "multi_source_TEN"
+        ],
+        "related_asset_ids": null,
+        "capacity_basis": "usable thermal capacity; unknown"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "penn-south-cogen",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -73.9980294,
+          40.7485511
+        ]
+      },
+      "properties": {
+        "site_id": "chelsea",
+        "asset_id": "penn-south-cogen",
+        "asset_name": "Penn South campus cogeneration system",
+        "asset_type": "CHP",
+        "role": "thermal_plant",
+        "latitude": 40.7485511,
+        "longitude": -73.9980294,
+        "distance_m": 929.854,
+        "distance_ring": "<= 1000 m",
+        "technology": "campus cogeneration",
+        "existing_or_proposed": "existing",
+        "temperature_C_if_known": null,
+        "capacity_MW_if_known": null,
+        "operator_if_known": "Mutual Redevelopment Houses, Inc.",
+        "source_name": "www.nyserda.ny.gov",
+        "source_url": "https://www.nyserda.ny.gov/All-Programs/Multifamily-Buildings-of-Excellence/Early-Design-Support-Program/MRH-Penn-South",
+        "evidence_note": "NYSERDA confirms campus cogeneration. Location is a documented campus building, not the powerhouse itself. Operator annual reports also describe the powerhouse; available surplus heat is unknown.",
+        "confidence": "MEDIUM",
+        "last_verified": "2026-10-03",
+        "coordinate_method": "NYC PLUTO parcel representative point",
+        "coordinate_source_url": "https://data.cityofnewyork.us/resource/64uk-42ks.json?%24where=borough%3D%27MN%27+AND+address%3D%27345+8TH+AVENUE%27&%24select=address%2Cbbl%2Clatitude%2Clongitude%2Cownername%2Cversion&%24limit=100",
+        "coordinate_record_id": "1007510001.00000000",
+        "location_scope": "campus_reference_point_not_equipment",
+        "existing_network_flag": true,
+        "connection_availability": "unknown",
+        "candidate_transport_types": [
+          "new_insulated_hot_water_loop",
+          "ambient_temperature_thermal_energy_network",
+          "multi_source_TEN"
+        ],
+        "related_asset_ids": null,
+        "capacity_basis": "usable thermal capacity; unknown"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "fit-chiller",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -73.994255065356,
+          40.746871615218
+        ]
+      },
+      "properties": {
+        "site_id": "chelsea",
+        "asset_id": "fit-chiller",
+        "asset_name": "FIT campus electric chiller plant",
+        "asset_type": "central_utility_plant",
+        "role": "thermal_plant",
+        "latitude": 40.746871615218,
+        "longitude": -73.994255065356,
+        "distance_m": 937.591,
+        "distance_ring": "<= 1000 m",
+        "technology": "electric campus chiller",
+        "existing_or_proposed": "existing",
+        "temperature_C_if_known": null,
+        "capacity_MW_if_known": null,
+        "operator_if_known": "Fashion Institute of Technology",
+        "source_name": "news.fitnyc.edu",
+        "source_url": "https://news.fitnyc.edu/2024/04/29/fit-invests-in-energy-efficient-infrastructure/",
+        "evidence_note": "FIT reports replacing its steam-powered chiller with an electric chiller in 2024. Campus cooling infrastructure may offer heat-recovery integration; that capability is inferred, not documented. Point is the campus mailing address.",
+        "confidence": "MEDIUM",
+        "last_verified": "2026-10-03",
+        "coordinate_method": "US Census TIGER address-range interpolation; not equipment position",
+        "coordinate_source_url": "https://geocoding.geo.census.gov/geocoder/locations/address?street=227+W+27th+St&city=New+York&state=NY&zip=10001&benchmark=Public_AR_Current&format=json",
+        "coordinate_record_id": "639429221",
+        "location_scope": "campus_reference_point_not_equipment",
+        "existing_network_flag": "unknown",
+        "connection_availability": "unknown",
+        "candidate_transport_types": [
+          "new_insulated_hot_water_loop",
+          "ambient_temperature_thermal_energy_network",
+          "multi_source_TEN"
+        ],
+        "related_asset_ids": null,
+        "capacity_basis": "usable thermal capacity; unknown"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "hudson-yards-cogen",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -74.0015773,
+          40.7527011
+        ]
+      },
+      "properties": {
+        "site_id": "chelsea",
+        "asset_id": "hudson-yards-cogen",
+        "asset_name": "Hudson Yards cogeneration and thermal reuse system",
+        "asset_type": "CHP",
+        "role": "thermal_plant",
+        "latitude": 40.7527011,
+        "longitude": -74.0015773,
+        "distance_m": 1334.206,
+        "distance_ring": "<= 1500 m",
+        "technology": "cogeneration with heating and cooling heat reuse",
+        "existing_or_proposed": "existing",
+        "temperature_C_if_known": null,
+        "capacity_MW_if_known": null,
+        "operator_if_known": "unknown",
+        "source_name": "www.hudsonyardsnewyork.com",
+        "source_url": "https://www.hudsonyardsnewyork.com/stories/sustainability-big-scale",
+        "evidence_note": "The operator documents two cogeneration plants with heat reused for neighborhood heating and cooling. Recorded once as a campus system. Point is 10 Hudson Yards, not either plant or a connection point.",
+        "confidence": "MEDIUM",
+        "last_verified": "2026-10-03",
+        "coordinate_method": "NYC PLUTO parcel representative point",
+        "coordinate_source_url": "https://data.cityofnewyork.us/resource/64uk-42ks.json?%24where=borough%3D%27MN%27+AND+address%3D%27501+WEST+30+STREET%27&%24select=address%2Cbbl%2Clatitude%2Clongitude%2Cownername%2Cversion&%24limit=100",
+        "coordinate_record_id": "1007020010.00000000",
+        "location_scope": "campus_reference_point_not_equipment",
+        "existing_network_flag": true,
+        "connection_availability": "unknown",
+        "candidate_transport_types": [
+          "new_insulated_hot_water_loop",
+          "ambient_temperature_thermal_energy_network",
+          "multi_source_TEN"
+        ],
+        "related_asset_ids": null,
+        "capacity_basis": "usable thermal capacity; unknown"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "nyu-cogen",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -73.9954467,
+          40.7285665
+        ]
+      },
+      "properties": {
+        "site_id": "chelsea",
+        "asset_id": "nyu-cogen",
+        "asset_name": "NYU Mercer Street cogeneration plant",
+        "asset_type": "CHP",
+        "role": "thermal_plant",
+        "latitude": 40.7285665,
+        "longitude": -73.9954467,
+        "distance_m": 1453.284,
+        "distance_ring": "<= 1500 m",
+        "technology": "cogeneration with campus thermal distribution",
+        "existing_or_proposed": "existing",
+        "temperature_C_if_known": null,
+        "capacity_MW_if_known": null,
+        "operator_if_known": "New York University",
+        "source_name": "www.nyc.gov",
+        "source_url": "https://www.nyc.gov/assets/planning/download/pdf/applicants/env-review/nyu_core/01_feis.pdf",
+        "evidence_note": "NYC environmental review identifies the below-grade cogeneration plant at 251 Mercer Street. NYU describes campus heating/cooling service. External export capacity and current connection availability are unknown.",
+        "confidence": "MEDIUM",
+        "last_verified": "2026-10-03",
+        "coordinate_method": "NYC PLUTO parcel representative point",
+        "coordinate_source_url": "https://data.cityofnewyork.us/resource/64uk-42ks.json?%24where=borough%3D%27MN%27+AND+address%3D%27251+MERCER+STREET%27&%24select=address%2Cbbl%2Clatitude%2Clongitude%2Cownername%2Cversion&%24limit=100",
+        "coordinate_record_id": "1005350020.00000000",
+        "location_scope": "facility_address",
+        "existing_network_flag": true,
+        "connection_availability": "unknown",
+        "candidate_transport_types": [
+          "new_insulated_hot_water_loop",
+          "ambient_temperature_thermal_energy_network",
+          "multi_source_TEN"
+        ],
+        "related_asset_ids": null,
+        "capacity_basis": "usable thermal capacity; unknown"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "coned-steam-territory",
+      "geometry": null,
+      "properties": {
+        "site_id": "chelsea",
+        "asset_id": "coned-steam-territory",
+        "asset_name": "Con Edison Manhattan steam network - service-area context",
+        "asset_type": "steam_network",
+        "role": "existing_heat_network",
+        "latitude": null,
+        "longitude": null,
+        "distance_m": null,
+        "distance_ring": "unknown",
+        "technology": "district steam",
+        "existing_or_proposed": "existing",
+        "temperature_C_if_known": null,
+        "capacity_MW_if_known": null,
+        "operator_if_known": "Con Edison",
+        "source_name": "www.coned.com",
+        "source_url": "https://www.coned.com/en/commercial-industrial/steam",
+        "evidence_note": "Utility confirms an existing Manhattan steam system. Public service-area context does not locate a main, tie-in point or available export capacity near 111 8th Avenue. No point geometry or distance is assigned.",
+        "confidence": "MEDIUM",
+        "last_verified": "2026-10-03",
+        "coordinate_method": null,
+        "coordinate_source_url": null,
+        "coordinate_record_id": null,
+        "location_scope": "service_territory_not_point",
+        "existing_network_flag": true,
+        "connection_availability": "unknown",
+        "candidate_transport_types": [
+          "connection_to_existing_district_energy_or_steam"
+        ],
+        "related_asset_ids": null,
+        "capacity_basis": "usable thermal capacity; unknown"
+      }
+    }
+  ]
+}

@@ -140,9 +140,7 @@ def load_site(site):
         b['is_campus'] = ((n_lots >= 2) | b['name'].str.contains('campus|cogen|houses', case=False, na=False)) \
             & (b['annual_mmbtu'] >= 15000) & (b['record_type'] == 'LL84 measured')
     else:
-        # parcels table has no site point; recover it from distances (closest parcels sit next to it)
-        near = b.nsmallest(30, 'dist_m')
-        lat0, lon0 = estimate_centre(near)
+        lat0, lon0 = site2_centre()
         SITE_XY['site2'] = (lat0, lon0)
         b['ef'] = (b['thermal_co2_t'] / b['annual_mmbtu']).fillna(GAS_EF / 0.8)
         b['is_old'] = ~(pd.to_numeric(b['year_built'], errors='coerce') >= 1980)
@@ -156,17 +154,18 @@ def load_site(site):
     return b.reset_index(drop=True), shapes, sup
 
 
-def estimate_centre(near):
-    """Least-squares point whose distances to the nearest parcels match their recorded dist_m."""
-    lat, lon, d = near['lat'].to_numpy(), near['lon'].to_numpy(), near['dist_m'].to_numpy()
-    best = None
-    for la in np.linspace(lat.mean() - 0.03, lat.mean() + 0.03, 61):
-        for lo in np.linspace(lon.mean() - 0.04, lon.mean() + 0.04, 81):
-            p = xy(lat, lon, la, lo)
-            err = ((np.hypot(p[:, 0], p[:, 1]) - d) ** 2).sum()
-            if best is None or err < best[0]:
-                best = (err, la, lo)
-    return best[1], best[2]
+def site2_centre():
+    """Centroid of the Cayuga Operating Co parcels (same definition as heat_models.py), cached."""
+    cache = MOD / 'site2_centre.txt'
+    if cache.exists():
+        return tuple(float(v) for v in cache.read_text().split(','))
+    import geopandas as gpd
+    p = gpd.read_file(ROOT / 'heat-reuse-data' / 'data' / 'site2_lansing' / 'tompkins_parcels.geojson',
+                      columns=['PRIMARY_OWNER']).to_crs(32618)
+    site = p[p['PRIMARY_OWNER'].str.contains('Cayuga Operating', case=False, na=False)]
+    c = gpd.GeoSeries([site.geometry.union_all().centroid], crs=32618).to_crs(4326).iloc[0]
+    cache.write_text(f'{c.y},{c.x}')
+    return c.y, c.x
 
 
 def add_site2_anchors(b, shapes, p):
@@ -193,9 +192,26 @@ def add_site2_anchors(b, shapes, p):
 # ======================================================================
 # HOURLY DEMAND HELPERS
 # ======================================================================
+_SHAPE_CACHE = {}
+
+
 def year_shape(shapes, bt, comp, year=None):
-    a = shapes[f'{bt}|{comp}']
-    return np.median(a, axis=0) if year is None else a[year]
+    key = (id(shapes), bt, comp, year)
+    if key not in _SHAPE_CACHE:
+        a = shapes[f'{bt}|{comp}']
+        _SHAPE_CACHE[key] = np.median(a, axis=0) if year is None else a[year]
+    return _SHAPE_CACHE[key]
+
+
+def set_demand(sel, shapes, year=None):
+    """Hourly MW of a set of buildings, summed type by type (fast)."""
+    D = np.zeros(8760)
+    for bt, g in sel.groupby('nrel_type'):
+        a_d = (g['annual_mmbtu'] * g['dhw_share']).sum()
+        a_s = (g['annual_mmbtu'] * (1 - g['dhw_share'])).sum()
+        D += (a_d * year_shape(shapes, bt, 'dhw', year) + a_s * year_shape(shapes, bt, 'space', year)) \
+            / 8760 * MW_PER_MMBTU_H
+    return D
 
 
 def building_mw(row, shapes, year=None):
@@ -233,8 +249,11 @@ OPTIONS = {
         'cornell_transmission': dict(kind='pipe', only_ids=['ANCHOR_CORNELL'], transmission=True,
                                      desc='17 km insulated transmission main to Cornell central plant (third party)'),
         'greenhouse_anchor': dict(kind='pipe', only_ids=['ANCHOR_GREENHOUSE'],
-                                  desc='Co-located greenhouse / aquaculture on adjacent farmland'),
-        'mobile_storage':   dict(kind='truck', top_n=6,
+                                  desc='Co-located greenhouse / aquaculture on adjacent farmland, heat pump to 65 C'),
+        'greenhouse_direct': dict(kind='direct', only_ids=['ANCHOR_GREENHOUSE'],
+                                  desc='Greenhouse heated DIRECTLY by ~45 C liquid-cooling return water (no heat pump; '
+                                       'air-cooled mining still needs one)'),
+        'mobile_storage':   dict(kind='truck', top_n=6, exclude_anchors=True,
                                  desc='Heat-battery containers trucked to the largest distant users (schools, Cornell)'),
     },
 }
@@ -275,6 +294,8 @@ def design(site, opt_name, b, shapes, sup, carbon_price, kind_key='ai_training')
         cop_b = p['building_hp_cop']
         avail0 = s['source'] * cop_b / (cop_b - 1)
         elec_per_mwh_heat = 1 / cop_b
+    elif opt['kind'] == 'direct':
+        avail0, elec_per_mwh_heat = s['source'], 0.0
     else:
         avail0 = s['delivered']
         elec_per_mwh_heat = (s['hp_elec'].sum() / s['delivered'].sum())
@@ -326,7 +347,7 @@ def design(site, opt_name, b, shapes, sup, carbon_price, kind_key='ai_training')
 
 def design_trucks(site, opt, cand, shapes, avail0, elec_per_mwh_heat, p, carbon_price):
     far = cand[cand['road_m'] > 3000].sort_values('annual_mmbtu', ascending=False).head(opt['top_n'])
-    D = sum((building_mw(r, shapes) for _, r in far.iterrows()), np.zeros(8760))
+    D = set_demand(far, shapes)
     daily_d = D.reshape(365, 24).sum(axis=1)
     fleet_mwh_day = np.percentile(daily_d, 90)              # size fleet for a cold-ish day
     containers = int(np.ceil(fleet_mwh_day / (p['truck_container_mwh'] * p['truck_cycles_per_day'])))
@@ -344,13 +365,9 @@ def simulate(site, opt_name, des, b, shapes, sup, rng, n=N_MC):
         return pd.DataFrame()
     types = sorted(sel['nrel_type'].unique())
     peak_kw_sel = np.array([peak_kw(r, shapes) for _, r in sel.iterrows()])
-    # backup boiler sized on the worst weather year at design: max hourly shortfall x 1.1
-    worst = 0.0
-    for yr in range(10):
-        Dy = sum((building_mw(r, shapes, yr) for _, r in sel.iterrows()), np.zeros(8760))
-        avail = np.maximum(des['avail0'] - des['pipe_m'] * des['loss_w'] / 1e6, 0)
-        worst = max(worst, (Dy - np.minimum(avail, Dy)).max())
-    backup_mw = worst * 1.1
+    # backup / peak boiler at the energy centre, sized like a real district system: it must carry
+    # the worst-weather-year peak with the data center OFF (N-1), plus a 10% margin
+    backup_mw = max(set_demand(sel, shapes, yr).max() for yr in range(10)) * 1.1
     kinds = ['ai_training', 'ai_inference', 'bitcoin_mining']
     n_runs = (sup['delivered_heat_mw'] if site == 'site1' else sup['phase1|ai_training|delivered_heat_mw']).shape[0]
 
@@ -387,6 +404,8 @@ def simulate(site, opt_name, des, b, shapes, sup, rng, n=N_MC):
             cop_b = p['building_hp_cop']
             avail = s['source'] * cop_b / (cop_b - 1)
             elec_ratio = np.full(8760, 1 / cop_b)
+        elif des['kind'] == 'direct' and kind != 'bitcoin_mining':
+            avail, elec_ratio = s['source'].copy(), np.zeros(8760)     # 45 C liquid loop used as-is
         else:
             avail = s['delivered'].copy()
             elec_ratio = np.divide(s['hp_elec'], s['delivered'], out=np.zeros(8760), where=s['delivered'] > 0)
@@ -424,9 +443,13 @@ def simulate(site, opt_name, des, b, shapes, sup, rng, n=N_MC):
         ef = sel['ef'].to_numpy()
         retro = peak_kw_sel * np.where(sel['is_air'], p.get('retrofit_per_kw_air', 0),
                                        np.where(sel['is_old'], p['retrofit_per_kw_old'], 0))
-        ll97 = (ann * dc_share * ef * 268 * p['ll97_share_over_limit']) if site == 'site1' else 0
-        buyer_net = p['buyer_discount'] * X * ann + ll97 - retro * a_eq
-        tariff_rev = ((1 - p['buyer_discount']) * X * ann).sum()
+        # Tariff: data-center heat is sold at (1 - discount) x the buyer's current cost. Backup / peak heat is
+        # passed through at the buyer's own current cost and carbon, so it neither helps nor hurts anyone:
+        # every dollar and tonne below is attributable to reused data-center heat.
+        dc_heat = ann * dc_share                                         # MMBtu of DC heat each buyer receives
+        ll97 = (dc_heat * ef * 268 * p['ll97_share_over_limit']) if site == 'site1' else 0
+        buyer_net = p['buyer_discount'] * X * dc_heat + ll97 - retro * a_eq
+        tariff_rev = ((1 - p['buyer_discount']) * X * dc_heat).sum()
 
         served_mwh, backup_mwh = served.sum(), backup_heat.sum()
         hp_elec = (served * elec_ratio).sum()
@@ -437,6 +460,9 @@ def simulate(site, opt_name, des, b, shapes, sup, rng, n=N_MC):
         if des['kind'] == 'pipe5':
             hp_capex = (peak_kw_sel * p['building_hp_per_kw']).sum()
             pipe_capex = des['pipe_m'] * p['pipe_per_m'] * 0.7
+        elif des['kind'] == 'direct' and kind != 'bitcoin_mining':
+            hp_capex = 0.0
+            pipe_capex = des['pipe_m'] * p['pipe_per_m']
         else:
             hp_capex = hp_kw * p['central_hp_per_kw']
             pipe_capex = des['pipe_m'] * (p['transmission_per_m'] if des['transmission'] else p['pipe_per_m'])
@@ -451,8 +477,7 @@ def simulate(site, opt_name, des, b, shapes, sup, rng, n=N_MC):
             truck_co2 = trips * km * p['truck_diesel_l_per_km'] * 2.68 / 1000
         capex_total = pipe_capex + hp_capex + conn_capex + boiler_capex + truck_capex
         op_cost = (pipe_capex * a_pipe + hp_capex * a_hp + (conn_capex + boiler_capex + truck_capex) * a_eq
-                   + capex_total * p['om_frac'] + (hp_elec + pump) * p['elec_per_mwh']
-                   + backup_mwh * MMBTU_PER_MWH / BOILER_EFF * p['backup_gas_price'] * p['price_mult'] + truck_opex)
+                   + capex_total * p['om_frac'] + (hp_elec + pump) * p['elec_per_mwh'] + truck_opex)
         dc_payment = source_used * MMBTU_PER_MWH * p['dc_heat_price']
         operator_net = tariff_rev - op_cost - dc_payment
 
@@ -461,15 +486,16 @@ def simulate(site, opt_name, des, b, shapes, sup, rng, n=N_MC):
             dc_cool_value = cool.sum() * p['elec_per_mwh']
         else:
             dc_cool_value = source_used * p['cooling_kwh_saved_per_mwh'] / 1000 * p['elec_per_mwh']
-        dc_capex = (s['source'].max() * 1000) * p['dc_tiein_per_kw']
+        dc_capex = ((served * (1 - elec_ratio)).max() * 1000) * p['dc_tiein_per_kw']   # sized to heat exported
         dc_net = dc_payment + dc_cool_value - dc_capex * a_eq
 
-        # --- carbon (t/yr): fuel the buildings no longer burn - what the network adds
-        avoided = (ann * ef).sum()
-        backup_co2 = backup_mwh * MMBTU_PER_MWH / BOILER_EFF * GAS_EF
+        # --- carbon (t/yr): fuel displaced by DC heat - grid electricity, embodied carbon, trucks
+        avoided = (dc_heat * ef).sum()
+        backup_co2 = 0.0                                                 # backup = buyer's own fuel (unchanged)
         grid_co2 = (hp_elec + pump) * p['grid_t_per_mwh']
         embodied = (des['pipe_m'] * p['embodied_pipe_kg_per_m'] / LIFE['pipe']
-                    + (hp_kw if des['kind'] != 'pipe5' else peak_kw_sel.sum()) * p['embodied_hp_kg_per_kw'] / LIFE['hp']) / 1000
+                    + (peak_kw_sel.sum() if des['kind'] == 'pipe5' else hp_kw * (hp_capex > 0))
+                    * p['embodied_hp_kg_per_kw'] / LIFE['hp']) / 1000
         net_co2 = avoided - backup_co2 - grid_co2 - embodied - truck_co2
         heat_mmbtu = (served_mwh + backup_mwh) * MMBTU_PER_MWH
         rows.append(dict(
@@ -480,7 +506,8 @@ def simulate(site, opt_name, des, b, shapes, sup, rng, n=N_MC):
             share_buyers_profit=(buyer_net > 0).mean(), all_buyers_profit=bool((buyer_net > 0).all()),
             all_profit=bool((buyer_net > 0).all() and operator_net > 0 and dc_net > 0),
             system_net=operator_net + dc_net + buyer_net.sum(),
-            lcoh_usd_per_mmbtu=(op_cost) / max(heat_mmbtu, 1e-9),
+            lcoh_usd_per_mmbtu=(op_cost + dc_payment) / max(served_mwh * MMBTU_PER_MWH, 1e-9),
+            avg_tariff_usd_per_mmbtu=tariff_rev / max(dc_heat.sum(), 1e-9),
             capex_musd=capex_total / 1e6, net_co2_t=net_co2,
             abatement_cost_usd_per_t=-(operator_net + dc_net + buyer_net.sum()) / max(net_co2, 1e-9)))
     return pd.DataFrame(rows)
@@ -528,6 +555,7 @@ if __name__ == '__main__':
                     dc_heat_share_p50=mc['dc_heat_share'].median(),
                     capex_musd_p50=mc['capex_musd'].median(),
                     lcoh_p50=mc['lcoh_usd_per_mmbtu'].median(),
+                    tariff_p50=mc['avg_tariff_usd_per_mmbtu'].median(),
                     net_co2_t_p10=mc['net_co2_t'].quantile(0.1), net_co2_t_p50=mc['net_co2_t'].median(),
                     system_net_musd_p10=mc['system_net'].quantile(0.1) / 1e6,
                     system_net_musd_p50=mc['system_net'].median() / 1e6,
@@ -538,7 +566,8 @@ if __name__ == '__main__':
                     abatement_usd_per_t_p50=mc['abatement_cost_usd_per_t'].median())
                 summary.append(row)
                 print(f"  {opt_name:22s} [{obj:15s}] {n_sel:5d} users, {row['pipe_km']:5.1f} km, "
-                      f"DC share {row['dc_heat_share_p50']:.0%}, CO2 -{row['net_co2_t_p50']:8,.0f} t/yr, "
+                      f"DC share {row['dc_heat_share_p50']:.0%}, cost ${row['lcoh_p50']:5.1f} vs tariff "
+                      f"${row['tariff_p50']:5.1f}/MMBtu, CO2 -{row['net_co2_t_p50']:8,.0f} t/yr, "
                       f"system net ${row['system_net_musd_p50']:6.1f}M/yr | P(warm) {row['p_everyone_warm']:.0%} "
                       f"P(all profit) {row['p_every_party_profits']:.0%} "
                       f"[op {row['p_operator_profit']:.0%} dc {row['p_dc_profit']:.0%} buyers {row['p_all_buyers_profit']:.0%}]")

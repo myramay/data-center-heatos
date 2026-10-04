@@ -1,0 +1,15 @@
+{
+  "url": "https://data.cityofnewyork.us/resource/64uk-42ks.json?%24where=borough%3D%27MN%27+AND+address%3D%27501+WEST+30+STREET%27&%24select=address%2Cbbl%2Clatitude%2Clongitude%2Cownername%2Cversion&%24limit=100",
+  "retrieved_at": "2026-10-03T22:32:51.240002+00:00",
+  "sha256": "425b0aa5eed04a9bca3edeeb606171f5ad17e251ed77b70bec2da30a4cb2f79a",
+  "response": [
+    {
+      "address": "501 WEST 30 STREET",
+      "bbl": "1007020010.00000000",
+      "latitude": "40.7527011",
+      "longitude": "-74.0015773",
+      "ownername": "LEGACY YARDS TENANT LP",
+      "version": "26v2"
+    }
+  ]
+}

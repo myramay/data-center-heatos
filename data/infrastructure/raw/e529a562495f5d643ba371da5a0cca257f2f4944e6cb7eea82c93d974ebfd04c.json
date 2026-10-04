@@ -1,0 +1,15 @@
+{
+  "url": "https://data.cityofnewyork.us/resource/64uk-42ks.json?%24where=borough%3D%27MN%27+AND+address%3D%27345+8TH+AVENUE%27&%24select=address%2Cbbl%2Clatitude%2Clongitude%2Cownername%2Cversion&%24limit=100",
+  "retrieved_at": "2026-10-03T22:32:50.620669+00:00",
+  "sha256": "4c125805e08f1330b01caf873837bfab6f2677dab5a1d68f8e8232043a8c09a7",
+  "response": [
+    {
+      "address": "345 8TH AVENUE",
+      "bbl": "1007510001.00000000",
+      "latitude": "40.7485511",
+      "longitude": "-73.9980294",
+      "ownername": "MUTUAL REDEVELOPMENT HOUSES INC",
+      "version": "26v2"
+    }
+  ]
+}

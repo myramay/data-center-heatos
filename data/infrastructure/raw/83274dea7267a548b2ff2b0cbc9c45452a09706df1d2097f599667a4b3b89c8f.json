@@ -1,0 +1,50 @@
+{
+  "url": "https://geocoding.geo.census.gov/geocoder/locations/address?street=420+W+17th+St&city=New+York&state=NY&zip=10011&benchmark=Public_AR_Current&format=json",
+  "retrieved_at": "2026-10-03T22:32:48.928074+00:00",
+  "sha256": "67de8f545df27ca5beb3912bc6b4750f064d117f722bbbc98610bc23543e25f8",
+  "response": {
+    "result": {
+      "input": {
+        "address": {
+          "zip": "10011",
+          "city": "New York",
+          "street": "420 W 17th St",
+          "state": "NY"
+        },
+        "benchmark": {
+          "isDefault": true,
+          "benchmarkDescription": "Public Address Ranges - Current Benchmark",
+          "id": "4",
+          "benchmarkName": "Public_AR_Current"
+        }
+      },
+      "addressMatches": [
+        {
+          "tigerLine": {
+            "side": "L",
+            "tigerLineId": "59659716"
+          },
+          "coordinates": {
+            "x": -74.004624912519,
+            "y": 40.743073905726
+          },
+          "addressComponents": {
+            "zip": "10011",
+            "streetName": "17TH",
+            "preType": "",
+            "city": "NEW YORK",
+            "preDirection": "W",
+            "suffixDirection": "",
+            "fromAddress": "400",
+            "state": "NY",
+            "suffixType": "ST",
+            "toAddress": "498",
+            "suffixQualifier": "",
+            "preQualifier": ""
+          },
+          "matchedAddress": "420 W 17TH ST, NEW YORK, NY, 10011"
+        }
+      ]
+    }
+  }
+}
