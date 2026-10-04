@@ -23,3 +23,4 @@ outputs/models/*
 !outputs/transport/
 outputs/transport/*
 !outputs/transport/options_summary.csv
+.vercel
