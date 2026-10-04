@@ -88,7 +88,7 @@ export function DemoController() {
     <AnimatePresence>
       {demo.active && demo.stage > 0 && (
         <motion.div key={demo.stage} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
-                    className="absolute left-1/2 -translate-x-1/2 bottom-[238px] z-50 glass px-5 py-3 flex items-center gap-4"
+                    className="absolute left-[calc((100vw-var(--sw))/2)] -translate-x-1/2 bottom-16 z-50 glass px-5 py-3 flex items-center gap-4"
                     style={{ borderColor: "#ff8a3d55" }}>
           <span className="num text-[11px] text-accent">STEP {demo.stage}/6</span>
           <span className="text-[13.5px]">{STAGES[demo.stage]}</span>

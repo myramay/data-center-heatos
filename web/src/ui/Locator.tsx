@@ -21,7 +21,7 @@ export function Locator() {
     return { land: d(geo.land), water: d(geo.water), pin: [sx(0), sy(0)] as const, plate };
   }, [geo, site]);
   return (
-    <div className="glass absolute left-[calc(var(--lw)+24px)] top-[76px] z-20 p-2 w-[184px]" style={{ borderRadius: 12 }}>
+    <div className="glass absolute left-3 top-[76px] z-20 p-2 w-[184px]" style={{ borderRadius: 12 }}>
       <div className="px-1 pb-1.5">
         <div className="text-[11.5px] font-semibold text-ink leading-tight">{TITLE[site][0]}</div>
         <div className="text-[10px] text-ink-3">{TITLE[site][1]}</div>

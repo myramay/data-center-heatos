@@ -22,7 +22,7 @@ export function Views() {
   return (
     <AnimatePresence>
       {view && (
-        <motion.div key={view} className="absolute right-3 top-[118px] bottom-[230px] w-[min(780px,calc(100vw-var(--lw)-40px))] z-40"
+        <motion.div key={view} className="absolute right-[calc(var(--sw)+24px)] top-[76px] bottom-3 w-[min(780px,calc(100vw-var(--sw)-48px))] z-40"
                     initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 40 }} transition={{ type: "spring", damping: 26, stiffness: 260 }}>
           <Panel className="h-full" title={TITLES[view]}
                  right={<button onClick={() => setView(null)} className="text-ink-3 hover:text-ink text-[13px]" aria-label="Close">✕</button>}>

@@ -2,9 +2,8 @@ import { Component, useEffect, type ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useStore } from "./store";
 import { Scene } from "./scene/Scene";
-import { TopBar, ViewTabs } from "./ui/TopBar";
-import { BuildingList, RightPanel } from "./ui/Sides";
-import { Dock } from "./ui/Dock";
+import { TopBar } from "./ui/TopBar";
+import { Sidebar } from "./ui/Sidebar";
 import { Views } from "./ui/Views";
 import { DemoController } from "./ui/Demo";
 import { Locator } from "./ui/Locator";
@@ -34,7 +33,7 @@ function Legend() {
     ? [["#3b2a8f", "low heat use"], ["#22d3ee", ""], ["#f5a524", ""], ["#ff3b3b", "high heat use"]]
     : [["#ff7a1a", "on network heat"], ["#f7b500", "drawing on storage"], ["#e5262b", "on backup boiler"], ["#7f97b8", "not connected"], ["#f2f4f7", "other buildings"]];
   return (
-    <div className="absolute left-[calc(var(--lw)+24px)] bottom-[232px] z-10 flex items-center gap-3 px-3 py-1.5 glass" style={{ borderRadius: 10 }}>
+    <div className="absolute left-3 bottom-3 z-10 flex flex-wrap max-w-[calc(100vw-var(--sw)-40px)] items-center gap-3 px-3 py-1.5 glass" style={{ borderRadius: 10 }}>
       {items.map(([c, l], i) => (
         <span key={i} className="flex items-center gap-1.5 text-[10.5px] text-ink-2">
           <span className="w-2.5 h-2.5 rounded-sm" style={{ background: c, border: "1px solid rgb(255 255 255 / 0.25)" }} />{l}
@@ -66,24 +65,21 @@ export default function App() {
         {!cinematic && (
           <motion.div key="ui" className="absolute inset-0 pointer-events-none [&>*]:pointer-events-auto" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <TopBar />
-            <ViewTabs />
-            <BuildingList />
-            <RightPanel />
-            <Dock />
+            <Sidebar />
             <Views />
             <Legend />
             <Locator />
           </motion.div>
         )}
       </AnimatePresence>
-      <div className="absolute right-3 bottom-[222px] z-10 text-[9.5px] text-ink-3/90 px-1.5 py-0.5 rounded" style={{ background: "rgb(255 255 255 / 0.55)", color: "#4b5563" }}>
+      <div className="absolute right-[calc(var(--sw)+24px)] bottom-3 z-10 text-[9.5px] text-ink-3/90 px-1.5 py-0.5 rounded" style={{ background: "rgb(255 255 255 / 0.55)", color: "#4b5563" }}>
         Geography: US Census Bureau · Buildings © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors
       </div>
       <DemoController />
       <AnimatePresence>
         {toast && (
           <motion.div key={toast} initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                      className="absolute top-[84px] left-1/2 -translate-x-1/2 z-50 glass px-4 py-2 text-[12.5px]">{toast}</motion.div>
+                      className="absolute top-[84px] left-[calc((100vw-var(--sw))/2)] -translate-x-1/2 z-50 glass px-4 py-2 text-[12.5px]">{toast}</motion.div>
         )}
       </AnimatePresence>
       {(loading || error) && (

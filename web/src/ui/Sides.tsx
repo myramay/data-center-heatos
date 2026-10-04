@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import { useBundle, useStore } from "../store";
 import { Bar, Chip, Gauge, Panel, Sparkline, VerdictBadge } from "./bits";
 import { OPTION_LABEL, mw, num, pct, titleCase, usd } from "../lib/format";
@@ -43,7 +43,7 @@ export function BuildingList() {
   const nConnected = bundle?.plan.items.filter((i) => i.connect).length ?? 0;
 
   return (
-    <Panel className="absolute left-3 top-[76px] bottom-[230px] w-[var(--lw)] z-20"
+    <Panel className="h-full"
            title={<span>Buildings <span className="num text-ink-2 normal-case tracking-normal">{bundle?.buildings.length ?? 0}</span></span>}
            right={step !== "analyze" && <span className="num text-[11px] text-ink-2">{nConnected} connected</span>}>
       <div className="flex flex-wrap gap-1 px-4 pb-2">
@@ -79,28 +79,7 @@ export function BuildingList() {
   );
 }
 
-// ------------------------------------------------------------------ right panel
-
-export function RightPanel() {
-  const selected = useStore((s) => s.selected);
-  return (
-    <div className="absolute right-3 top-[118px] bottom-[230px] w-[var(--rw)] z-20">
-      <AnimatePresence mode="wait">
-        {selected ? (
-          <motion.div key="detail" className="h-full" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}>
-            <BuildingDetail id={selected} />
-          </motion.div>
-        ) : (
-          <motion.div key="conf" className="h-full" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}>
-            <ConfidencePanel />
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
-
-function BuildingDetail({ id }: { id: string }) {
+export function BuildingDetail({ id }: { id: string }) {
   const bundle = useBundle();
   const live = useStore((s) => s.live);
   const select = useStore((s) => s.select);
@@ -210,7 +189,7 @@ function BuildingDetail({ id }: { id: string }) {
   );
 }
 
-function ConfidencePanel() {
+export function ConfidencePanel() {
   const f = useStore((s) => s.frame);
   const site = useStore((s) => s.site);
   const live = useStore((s) => s.live);

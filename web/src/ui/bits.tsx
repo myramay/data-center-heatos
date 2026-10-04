@@ -1,10 +1,14 @@
-import type { ReactNode } from "react";
+import { createContext, useContext, type ReactNode } from "react";
 import { motion } from "framer-motion";
 import type { Verdict } from "../types";
 
+/** Inside the sidebar, panels drop their own glass card so sections don't nest boxes. */
+export const BareContext = createContext(false);
+
 export function Panel({ title, right, children, className = "" }: { title?: ReactNode; right?: ReactNode; children: ReactNode; className?: string }) {
+  const bare = useContext(BareContext);
   return (
-    <div className={`glass flex flex-col min-h-0 ${className}`}>
+    <div className={`${bare ? "" : "glass "}flex flex-col min-h-0 ${className}`}>
       {(title || right) && (
         <div className="flex items-center justify-between px-4 pt-3 pb-2">
           <div className="label">{title}</div>

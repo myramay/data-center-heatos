@@ -9,3 +9,5 @@ web/dist/
 .jev-venv/
 .geo-cache/
 .env
+heat-reuse-data/
+.team-venv/

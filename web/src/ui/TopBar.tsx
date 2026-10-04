@@ -1,17 +1,12 @@
 import { motion } from "framer-motion";
-import { STEPS, useStore, type View } from "../store";
+import { STEPS, useStore } from "../store";
 import type { SiteId } from "../types";
 
-const VIEWS: { id: Exclude<View, null>; label: string }[] = [
-  { id: "physics", label: "Physics" }, { id: "compare", label: "Compare" }, { id: "team", label: "Team" }, { id: "tree", label: "Why?" },
-  { id: "money", label: "Money" }, { id: "guarantees", label: "Guarantees" }, { id: "impact", label: "Impact" },
-  { id: "framework", label: "Sites" }, { id: "report", label: "Report" },
-];
 const SPEEDS = [1, 10, 30, 100];
 
 function Clock() {
   const f = useStore((s) => s.frame);
-  if (!f) return <div className="num text-ink-3 text-[11px] leading-tight">paused<br />press ▶ or Stress-test</div>;
+  if (!f) return <div className="num text-ink-3 text-[11px] leading-tight">paused · press ▶</div>;
   const d = new Date(f.time);
   const date = d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
   const time = d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
@@ -21,19 +16,6 @@ function Clock() {
       <div className="num text-[10.5px] text-ink-3">
         hour {f.hour_index + 1}/{f.hours_total} · {f.weather.t_out_c.toFixed(1)}°C outside
       </div>
-    </div>
-  );
-}
-
-export function ViewTabs() {
-  const view = useStore((s) => s.view);
-  const setView = useStore((s) => s.setView);
-  return (
-    <div className="glass absolute right-3 top-[76px] h-[36px] w-[max(var(--rw),520px)] z-30 flex items-center justify-between px-1 overflow-x-auto" style={{ borderRadius: 10 }}>
-      {VIEWS.map((v) => (
-        <button key={v.id} onClick={() => setView(view === v.id ? null : v.id)}
-                className={`px-1.5 py-1 rounded-md text-[11px] whitespace-nowrap ${view === v.id ? "bg-white/12 text-ink" : "text-ink-3 hover:text-ink-2"}`}>{v.label}</button>
-      ))}
     </div>
   );
 }
@@ -79,23 +61,15 @@ export function TopBar() {
         </div>
       </div>
 
-      <button onClick={() => s.setAutopilot(!s.autopilot)} className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-white/5 border border-line hover:bg-white/10">
-        <span className="label">Autopilot</span>
-        <span className={`relative w-9 h-5 rounded-full transition-colors ${s.autopilot ? "bg-accent/80" : "bg-white/15"}`}>
-          <motion.span className="absolute top-0.5 w-4 h-4 rounded-full bg-white" animate={{ left: s.autopilot ? 18 : 2 }} />
-        </span>
-        <span className="num text-[11px] text-ink-2 w-9">{s.autopilot ? "MPC" : "Rules"}</span>
-      </button>
-
-      <div className="flex items-center gap-1 ml-1">
+      <div className="flex items-center gap-1 ml-2 p-0.5 rounded-lg bg-white/5 border border-line">
         {STEPS.map((st, i) => {
           const active = s.step === st.id;
           const done = STEPS.findIndex((x) => x.id === s.step) > i;
           return (
             <button key={st.id} onClick={() => s.setStep(st.id)}
-                    className={`flex items-center gap-1 px-1.5 py-1 rounded-md text-[11.5px] ${active ? "text-ink bg-white/10" : done ? "text-ink-2" : "text-ink-3 hover:text-ink-2"}`}>
+                    className={`flex items-center gap-1.5 px-2 py-1.5 rounded-md text-[12.5px] ${active ? "text-ink bg-white/10" : done ? "text-ink-2" : "text-ink-3 hover:text-ink-2"}`}>
               <span className={`num w-4 h-4 rounded-full grid place-items-center text-[9.5px] ${active ? "bg-accent text-void" : done ? "bg-white/25 text-void" : "border border-line"}`}>{i + 1}</span>
-              <span className={active ? "" : "hidden 2xl:inline"}>{st.label}</span>
+              <span className={active ? "font-semibold" : "hidden lg:inline"}>{st.label}</span>
             </button>
           );
         })}
@@ -103,12 +77,9 @@ export function TopBar() {
 
       <div className="flex-1" />
 
-      <button onClick={() => s.setCinematic(!s.cinematic)} className="px-2.5 py-1.5 rounded-lg text-[12px] border border-line bg-white/5 hover:bg-white/10">
-        {s.cinematic ? "■ Stop" : "◉ Cinematic"}
-      </button>
       <button onClick={() => s.setDemo({ active: !s.demo.active, stage: s.demo.active ? 0 : 1 })}
-              className="px-2.5 py-1.5 rounded-lg text-[12px] font-semibold text-void" style={{ background: "#ff8a3d" }}>
-        {s.demo.active ? "Exit demo" : "Demo"}
+              className="px-3.5 py-1.5 rounded-lg text-[13px] font-semibold text-void" style={{ background: "#ff8a3d" }}>
+        {s.demo.active ? "Exit demo" : "▶ Run demo"}
       </button>
       <span title={s.live ? "Connected to the HeatOS engine" : "Backend offline: playing recorded runs"}
             className={`num text-[10px] px-1.5 py-0.5 rounded ${s.live ? "text-good" : "text-warning"}`}

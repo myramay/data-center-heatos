@@ -12,13 +12,13 @@ const SCENARIO_ICON: Record<string, string> = {
   price_spike: "$", greenhouse_off_season: "❀", bitcoin_price_crash: "₿",
 };
 
-function StressToggles() {
+export function StressToggles() {
   const bundle = useBundle();
   const fire = useStore((s) => s.fireScenario);
   const active = useStore((s) => s.frame?.active_scenarios) ?? NONE;
   const [pressed, setPressed] = useState<string | null>(null);
   return (
-    <Panel title="Stress tests" className="w-[clamp(236px,19vw,300px)] shrink-0">
+    <Panel title="Stress-test the network">
       <div className="grid grid-cols-2 gap-2 px-3 pb-3">
         {bundle?.scenarios.map((sc, i) => {
           const on = active.includes(sc.name);
@@ -46,11 +46,11 @@ function StressToggles() {
   );
 }
 
-function EventTicker() {
+export function EventTicker() {
   const events = useStore((s) => s.events);
   const list = [...events].reverse().slice(0, 30);
   return (
-    <Panel title="Event log" className="w-[clamp(240px,21vw,330px)] shrink-0">
+    <Panel title="Event log" className="h-full">
       <div className="overflow-y-auto scroll-thin px-3 pb-3 min-h-0 flex-1">
         <AnimatePresence initial={false}>
           {list.length === 0 && <div className="text-[11.5px] text-ink-3 px-1">Waiting for the network to start…</div>}
@@ -70,7 +70,7 @@ function EventTicker() {
   );
 }
 
-function FlowChart() {
+export function FlowChart() {
   const frames = useStore((s) => s.frames);
   const data = useMemo(() => frames.slice(-72).map((f) => {
     const storage = f.storage.reduce((a, s) => a + s.out_kw, 0) / 1000;
@@ -82,7 +82,7 @@ function FlowChart() {
     };
   }), [frames]);
   return (
-    <Panel title="Heat supply vs demand · last 72 h (MW)" className="flex-1 min-w-0">
+    <Panel title="Heat supply vs demand · last 72 h (MW)" className="h-[230px]">
       <div className="flex-1 min-h-0 px-2 pb-2">
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={data} margin={{ top: 4, right: 12, bottom: 0, left: -12 }}>
@@ -101,15 +101,5 @@ function FlowChart() {
         </ResponsiveContainer>
       </div>
     </Panel>
-  );
-}
-
-export function Dock() {
-  return (
-    <div className="absolute left-3 right-3 bottom-3 h-[208px] flex gap-3 z-20">
-      <StressToggles />
-      <EventTicker />
-      <FlowChart />
-    </div>
   );
 }
