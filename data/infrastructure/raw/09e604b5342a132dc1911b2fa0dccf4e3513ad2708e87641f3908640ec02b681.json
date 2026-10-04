@@ -1,0 +1,50 @@
+{
+  "url": "https://geocoding.geo.census.gov/geocoder/locations/address?street=401+W+16th+St&city=New+York&state=NY&zip=10011&benchmark=Public_AR_Current&format=json",
+  "retrieved_at": "2026-10-03T22:32:48.460274+00:00",
+  "sha256": "87dbce587d16c9ae6b5ea14a19f679d42aad9fd16d6f1cc363fbeefbbc08eea4",
+  "response": {
+    "result": {
+      "input": {
+        "address": {
+          "zip": "10011",
+          "city": "New York",
+          "street": "401 W 16th St",
+          "state": "NY"
+        },
+        "benchmark": {
+          "isDefault": true,
+          "benchmarkDescription": "Public Address Ranges - Current Benchmark",
+          "id": "4",
+          "benchmarkName": "Public_AR_Current"
+        }
+      },
+      "addressMatches": [
+        {
+          "tigerLine": {
+            "side": "R",
+            "tigerLineId": "59659718"
+          },
+          "coordinates": {
+            "x": -74.004445411502,
+            "y": 40.74236190845
+          },
+          "addressComponents": {
+            "zip": "10011",
+            "streetName": "16TH",
+            "preType": "",
+            "city": "NEW YORK",
+            "preDirection": "W",
+            "suffixDirection": "",
+            "fromAddress": "401",
+            "state": "NY",
+            "suffixType": "ST",
+            "toAddress": "445",
+            "suffixQualifier": "",
+            "preQualifier": ""
+          },
+          "matchedAddress": "401 W 16TH ST, NEW YORK, NY, 10011"
+        }
+      ]
+    }
+  }
+}

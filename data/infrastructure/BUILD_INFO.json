@@ -1,0 +1,12 @@
+{
+  "repository": "https://github.com/myramay/data-center-heatos",
+  "discovery_base_commit": "20beff1b7f70c395be327114c8fb8662538e3c51",
+  "integration_base_commit": "70c5c3fe35d85fbb111624b8ada715353a2eca5f",
+  "scope": "Site 1 only; additive infrastructure module",
+  "tests_passed": 7,
+  "candidate_records": 11,
+  "geolocated_records": 10,
+  "site2": "deferred",
+  "offline_replay": "passed",
+  "existing_tracked_files_modified": false
+}

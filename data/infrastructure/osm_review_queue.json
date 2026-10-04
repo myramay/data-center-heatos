@@ -1,0 +1,5 @@
+{
+  "source_url": "https://overpass-api.de/api/interpreter?data=%5Bout%3Ajson%5D%5Btimeout%3A25%5D%3B%28nwr%28around%3A2200%2C40.740704%2C-74.001844%29%5B%22power%22%3D%22plant%22%5D%3Bnwr%28around%3A2200%2C40.740704%2C-74.001844%29%5B%22man_made%22%3D%22wastewater_plant%22%5D%3Bnwr%28around%3A2200%2C40.740704%2C-74.001844%29%5B%22man_made%22%3D%22pumping_station%22%5D%3Bnwr%28around%3A2200%2C40.740704%2C-74.001844%29%5B%22man_made%22%3D%22pipeline%22%5D%5B%22substance%22~%22steam%7Chot_water%22%5D%3B%29%3Bout+center+tags%3B",
+  "review_status": "unreviewed_not_exported_as_candidates",
+  "elements": []
+}

@@ -1,0 +1,50 @@
+{
+  "url": "https://geocoding.geo.census.gov/geocoder/locations/address?street=32+Avenue+of+the+Americas&city=New+York&state=NY&zip=10013&benchmark=Public_AR_Current&format=json",
+  "retrieved_at": "2026-10-03T22:32:51.423989+00:00",
+  "sha256": "b40dc236e67d9a08f9738fe6747c89fd5fb95983f88a1e92f0fb257f4f38a52f",
+  "response": {
+    "result": {
+      "input": {
+        "address": {
+          "zip": "10013",
+          "city": "New York",
+          "street": "32 Avenue of the Americas",
+          "state": "NY"
+        },
+        "benchmark": {
+          "isDefault": true,
+          "benchmarkDescription": "Public Address Ranges - Current Benchmark",
+          "id": "4",
+          "benchmarkName": "Public_AR_Current"
+        }
+      },
+      "addressMatches": [
+        {
+          "tigerLine": {
+            "side": "R",
+            "tigerLineId": "59660213"
+          },
+          "coordinates": {
+            "x": -74.005112953153,
+            "y": 40.719896427819
+          },
+          "addressComponents": {
+            "zip": "10013",
+            "streetName": "OF THE AMERICAS",
+            "preType": "AVE",
+            "city": "NEW YORK",
+            "preDirection": "",
+            "suffixDirection": "",
+            "fromAddress": "32",
+            "state": "NY",
+            "suffixType": "",
+            "toAddress": "78",
+            "suffixQualifier": "",
+            "preQualifier": ""
+          },
+          "matchedAddress": "32 AVE OF THE AMERICAS, NEW YORK, NY, 10013"
+        }
+      ]
+    }
+  }
+}

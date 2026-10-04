@@ -1,0 +1,169 @@
+{
+  "site": {
+    "site_id": "chelsea",
+    "name": "111 8th Avenue",
+    "latitude": 40.740704,
+    "longitude": -74.001844,
+    "rings_m": [
+      250,
+      500,
+      1000,
+      1500,
+      2200
+    ],
+    "ll84_property_id": 7536925,
+    "coordinate_source": "combine_site1.py",
+    "simulator_coordinate_reference": {
+      "latitude": 40.7411,
+      "longitude": -74.0032
+    },
+    "site2_status": "deferred_by_user"
+  },
+  "simulator_coordinate_difference_m": 122.434,
+  "candidate_count": 11,
+  "geolocated_count": 10,
+  "by_role": {
+    "potential_anchor_sink": 4,
+    "third_party_heat_source": 1,
+    "utility_infrastructure": 1,
+    "thermal_plant": 4,
+    "existing_heat_network": 1
+  },
+  "closest_10": [
+    {
+      "asset_name": "Fulton Houses - 401 West 16th Street",
+      "distance_m": 286.388,
+      "distance_ring": "<= 500 m"
+    },
+    {
+      "asset_name": "Fulton Houses - 410 West 17th Street",
+      "distance_m": 327.563,
+      "distance_ring": "<= 500 m"
+    },
+    {
+      "asset_name": "Fulton Houses - 420 West 17th Street",
+      "distance_m": 352.609,
+      "distance_ring": "<= 500 m"
+    },
+    {
+      "asset_name": "85 10th Avenue - documented pilot heat-source building",
+      "distance_m": 596.95,
+      "distance_ring": "<= 1000 m"
+    },
+    {
+      "asset_name": "Con Edison Chelsea TEN pilot",
+      "distance_m": 596.95,
+      "distance_ring": "<= 1000 m"
+    },
+    {
+      "asset_name": "Chelsea Recreation Center indoor pool",
+      "distance_m": 844.762,
+      "distance_ring": "<= 1000 m"
+    },
+    {
+      "asset_name": "Penn South campus cogeneration system",
+      "distance_m": 929.854,
+      "distance_ring": "<= 1000 m"
+    },
+    {
+      "asset_name": "FIT campus electric chiller plant",
+      "distance_m": 937.591,
+      "distance_ring": "<= 1000 m"
+    },
+    {
+      "asset_name": "Hudson Yards cogeneration and thermal reuse system",
+      "distance_m": 1334.206,
+      "distance_ring": "<= 1500 m"
+    },
+    {
+      "asset_name": "NYU Mercer Street cogeneration plant",
+      "distance_m": 1453.284,
+      "distance_ring": "<= 1500 m"
+    }
+  ],
+  "exclusions": [
+    {
+      "asset_id": "jfk13-32-americas",
+      "reason": "outside_maximum_ring",
+      "distance_m": 2330.035
+    }
+  ],
+  "api_events": [
+    {
+      "url": "https://data.cityofnewyork.us/resource/64uk-42ks.json?%24where=borough%3D%27MN%27+AND+address%3D%2785+10+AVENUE%27&%24select=address%2Cbbl%2Clatitude%2Clongitude%2Cownername%2Cversion&%24limit=100",
+      "status": "cached",
+      "retrieved_at": "2026-10-03T22:32:49.340813+00:00",
+      "sha256": "1aafb1ee081c65734bddeb9eb42d46fd367cc1928fec84a1b87e1d662d993d36"
+    },
+    {
+      "url": "https://geocoding.geo.census.gov/geocoder/locations/address?street=401+W+16th+St&city=New+York&state=NY&zip=10011&benchmark=Public_AR_Current&format=json",
+      "status": "cached",
+      "retrieved_at": "2026-10-03T22:32:48.460274+00:00",
+      "sha256": "87dbce587d16c9ae6b5ea14a19f679d42aad9fd16d6f1cc363fbeefbbc08eea4"
+    },
+    {
+      "url": "https://geocoding.geo.census.gov/geocoder/locations/address?street=410+W+17th+St&city=New+York&state=NY&zip=10011&benchmark=Public_AR_Current&format=json",
+      "status": "cached",
+      "retrieved_at": "2026-10-03T22:32:48.651689+00:00",
+      "sha256": "92f763a684dd84098482a8aeed188ac6cfa5da93e7666205843a614ccc7df885"
+    },
+    {
+      "url": "https://geocoding.geo.census.gov/geocoder/locations/address?street=420+W+17th+St&city=New+York&state=NY&zip=10011&benchmark=Public_AR_Current&format=json",
+      "status": "cached",
+      "retrieved_at": "2026-10-03T22:32:48.928074+00:00",
+      "sha256": "67de8f545df27ca5beb3912bc6b4750f064d117f722bbbc98610bc23543e25f8"
+    },
+    {
+      "url": "https://data.cityofnewyork.us/resource/64uk-42ks.json?%24where=borough%3D%27MN%27+AND+address%3D%2785+10+AVENUE%27&%24select=address%2Cbbl%2Clatitude%2Clongitude%2Cownername%2Cversion&%24limit=100",
+      "status": "cached",
+      "retrieved_at": "2026-10-03T22:32:49.340813+00:00",
+      "sha256": "1aafb1ee081c65734bddeb9eb42d46fd367cc1928fec84a1b87e1d662d993d36"
+    },
+    {
+      "url": "https://data.cityofnewyork.us/resource/64uk-42ks.json?%24where=borough%3D%27MN%27+AND+address%3D%27251+MERCER+STREET%27&%24select=address%2Cbbl%2Clatitude%2Clongitude%2Cownername%2Cversion&%24limit=100",
+      "status": "cached",
+      "retrieved_at": "2026-10-03T22:32:50.164986+00:00",
+      "sha256": "3505e1153dd714553fd0567ea067ae0052551d49c0da812436c371dbeb9988d1"
+    },
+    {
+      "url": "https://data.cityofnewyork.us/resource/64uk-42ks.json?%24where=borough%3D%27MN%27+AND+address%3D%27345+8TH+AVENUE%27&%24select=address%2Cbbl%2Clatitude%2Clongitude%2Cownername%2Cversion&%24limit=100",
+      "status": "cached",
+      "retrieved_at": "2026-10-03T22:32:50.620669+00:00",
+      "sha256": "4c125805e08f1330b01caf873837bfab6f2677dab5a1d68f8e8232043a8c09a7"
+    },
+    {
+      "url": "https://geocoding.geo.census.gov/geocoder/locations/address?street=227+W+27th+St&city=New+York&state=NY&zip=10001&benchmark=Public_AR_Current&format=json",
+      "status": "cached",
+      "retrieved_at": "2026-10-03T22:32:50.800411+00:00",
+      "sha256": "5cfee1e8f6bf17d303a7a00ee781b7ea289406414d22203fdbacd46d6e41e57d"
+    },
+    {
+      "url": "https://data.cityofnewyork.us/resource/64uk-42ks.json?%24where=borough%3D%27MN%27+AND+address%3D%27430+WEST+25+STREET%27&%24select=address%2Cbbl%2Clatitude%2Clongitude%2Cownername%2Cversion&%24limit=100",
+      "status": "cached",
+      "retrieved_at": "2026-10-03T22:32:51.053374+00:00",
+      "sha256": "02224835a47d7f8cb36f5340ba635ccb093df8b364788316d1a40a1350e016f6"
+    },
+    {
+      "url": "https://data.cityofnewyork.us/resource/64uk-42ks.json?%24where=borough%3D%27MN%27+AND+address%3D%27501+WEST+30+STREET%27&%24select=address%2Cbbl%2Clatitude%2Clongitude%2Cownername%2Cversion&%24limit=100",
+      "status": "cached",
+      "retrieved_at": "2026-10-03T22:32:51.240002+00:00",
+      "sha256": "425b0aa5eed04a9bca3edeeb606171f5ad17e251ed77b70bec2da30a4cb2f79a"
+    },
+    {
+      "url": "https://geocoding.geo.census.gov/geocoder/locations/address?street=32+Avenue+of+the+Americas&city=New+York&state=NY&zip=10013&benchmark=Public_AR_Current&format=json",
+      "status": "cached",
+      "retrieved_at": "2026-10-03T22:32:51.423989+00:00",
+      "sha256": "b40dc236e67d9a08f9738fe6747c89fd5fb95983f88a1e92f0fb257f4f38a52f"
+    }
+  ],
+  "site2": "not_run_deferred_by_user",
+  "validation": {
+    "unique_asset_ids": true,
+    "coordinate_bounds_checked": true,
+    "independent_distances_checked": true,
+    "every_row_has_evidence": true,
+    "unsupported_engineering_values_null": true
+  },
+  "last_evidence_review": "2026-10-03",
+  "note": "Location refresh does not update evidence review dates. Service territory is not a point or verified tie-in. Campus points are approximate references."
+}

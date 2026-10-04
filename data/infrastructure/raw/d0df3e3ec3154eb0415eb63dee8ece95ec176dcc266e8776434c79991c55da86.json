@@ -1,0 +1,15 @@
+{
+  "url": "https://data.cityofnewyork.us/resource/64uk-42ks.json?%24where=borough%3D%27MN%27+AND+address%3D%27430+WEST+25+STREET%27&%24select=address%2Cbbl%2Clatitude%2Clongitude%2Cownername%2Cversion&%24limit=100",
+  "retrieved_at": "2026-10-03T22:32:51.053374+00:00",
+  "sha256": "02224835a47d7f8cb36f5340ba635ccb093df8b364788316d1a40a1350e016f6",
+  "response": [
+    {
+      "address": "430 WEST 25 STREET",
+      "bbl": "1007220057.00000000",
+      "latitude": "40.7482958",
+      "longitude": "-74.0022196",
+      "ownername": "NYC DEPARTMENT OF PARKS AND RECREATION",
+      "version": "26v2"
+    }
+  ]
+}
