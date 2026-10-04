@@ -247,11 +247,17 @@ class TeamSupplyProvider(mocks.MockSupplyProvider):
 
     def model_card(self) -> ModelCard:
         scale = os.environ.get("HEATOS_SUPPLY_SCALE", "config")
+        val = MODELS / "demand_model_validation.txt"
+        multi = val.exists() and "Multi-source trace model" in val.read_text()
+        traces = (["Google powerdata_2019", "Alibaba cluster-trace 2018", "Alibaba PAI GPU 2020", "Microsoft Philly GPU",
+                   "Azure Public Dataset V2 VMs", "Bitbrains GWA-T-12", "MIT Supercloud (GPU alloc, watt-calibrated)"]
+                  if multi else ["Google powerdata_2019 traces"])
         return ModelCard(
             name="Team supply model (heat_models.py)", version="calibrated sim + Monte Carlo",
-            method="site 1: LL84 monthly electricity regression (IT vs cooling) + Google-trace compute profile; "
-                   "site 2: proposed phase 1 AI-inference simulation",
-            datasets=["NYC LL84 monthly (111 8th Ave)", "Google powerdata_2019 traces", "NOAA ISD 2015-2024"],
+            method="site 1: LL84 monthly electricity regression (IT vs cooling) + "
+                   + ("multi-operator compute-load model (leave-one-operator-out validated)" if multi else "Google-trace compute profile")
+                   + "; site 2: proposed phase 1 AI-inference simulation",
+            datasets=["NYC LL84 monthly (111 8th Ave)", *traces, "NOAA ISD 2015-2024"],
             assumptions=[f"scale = {scale}: " + ("team shape scaled to the site config capacity" if scale != "team"
                                                   else "team magnitude used as-is"),
                          "p05/p95 = team P10/P90 across simulated runs"],

@@ -24,6 +24,7 @@ SUPPLY (calibrated simulation + Monte Carlo)
 
 Every assumption that is not from a dataset is in the ASSUMPTIONS blocks.
 """
+import os
 from pathlib import Path
 
 import geopandas as gpd
@@ -537,6 +538,12 @@ class ComputeLoadModel:
     def share_for(self, kind):
         return float(np.percentile(self.share_by_pdu, WORKLOAD_MIX_PCTILE[kind]))
 
+    def hourly_profile(self, kind, q):
+        hours = np.arange(24)
+        X = pd.DataFrame({'hrs_after_trough': (hours - TROUGH_LOCAL_HOUR) % 24, 'dow': 2,
+                          'production_share': self.share_for(kind), 'is_mvpp': 0})
+        return self.models[q].predict(X[self.FEATS])
+
 
 def fit_site1_electricity():
     """Monthly regression: average MW = level(year) + b * mean(max(T - Tbal, 0)). Separates IT from cooling."""
@@ -609,7 +616,10 @@ def simulate_site1_supply(fit, temp, compute):
 def utilization(kind, idx, temp, compute):
     n = len(idx)
     h = idx.hour.to_numpy()
-    if kind == 'ai_training':
+    if kind == 'ai_training' and 'dl_training' in getattr(compute, 'workloads', []):
+        # multi-source model: shape and noise learned from real deep-learning training cluster traces
+        u = 0.92 * compute.simulate(idx, compute.share_for('ai_training'))
+    elif kind == 'ai_training':
         u = 0.92 + ar1_noise(n, 0.04)
         for d in np.flatnonzero(RNG.random(n // 24) < 0.05):            # job restarts / checkpoint dips
             s = d * 24 + RNG.integers(0, 20)
@@ -715,20 +725,24 @@ if __name__ == '__main__':
         print(pd.DataFrame(rows).round(1).to_string(index=False))
         results[key] = dict(buildings=b, agg=agg, temp=temp, demand=dem)
 
-    section('3a. COMPUTE LOAD MODEL: learned from Google 2019 data-center power traces')
-    compute = ComputeLoadModel()
+    if os.environ.get('COMPUTE_TRACES') == 'multi':      # Google + other operators' traces (compute_multi.py)
+        from compute_multi import MultiSourceComputeModel
+        section('3a. COMPUTE LOAD MODEL: learned from power / GPU / CPU traces of several operators')
+        compute = MultiSourceComputeModel()
+    else:
+        section('3a. COMPUTE LOAD MODEL: learned from Google 2019 data-center power traces')
+        compute = ComputeLoadModel()
     trace_lines = compute.validate() + [compute.describe()]
     print('\n'.join(trace_lines))
     for kind in WORKLOAD_MIX_PCTILE:
-        print(f"  workload mix used for {kind}: production share {compute.share_for(kind):.2f}")
+        mix = compute.share_for(kind)
+        print(f"  workload mix used for {kind}: " + (f"production share {mix:.2f}" if isinstance(mix, float) else f"'{mix}' traces"))
     with open(OUT / 'demand_model_validation.txt', 'a') as fh:
         fh.write('\n' + '\n'.join(trace_lines))
     hourly = pd.DataFrame({'hour': range(24)})
     for kind in WORKLOAD_MIX_PCTILE:
         for q in QUANTILES:
-            X = pd.DataFrame({'hrs_after_trough': (hourly['hour'] - TROUGH_LOCAL_HOUR) % 24, 'dow': 2,
-                              'production_share': compute.share_for(kind), 'is_mvpp': 0})
-            hourly[f'{kind}_rel_load_P{int(q * 100)}'] = compute.models[q].predict(X[ComputeLoadModel.FEATS])
+            hourly[f'{kind}_rel_load_P{int(q * 100)}'] = compute.hourly_profile(kind, q)
     hourly.to_csv(OUT / 'compute_load_profile_by_hour.csv', index=False)
 
     section('3b. SITE 1 SUPPLY: 111 8th Ave (colocation / carrier hotel)')

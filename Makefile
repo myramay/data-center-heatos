@@ -33,7 +33,8 @@ record:
 ml-data:
 	$(PY) -m scripts.fetch_ml_data
 
-# retrain the team's demand / supply models (needs .team-venv: Python 3.14 + requirements.txt)
+# retrain the team's demand / supply models (needs .team-venv: Python 3.14 + requirements.txt);
+# COMPUTE_TRACES=multi trains the compute-load model on every operator's traces (compute_multi.py)
 ml-models:
 	.team-venv/bin/python combine_site1.py
-	.team-venv/bin/python heat_models.py
+	COMPUTE_TRACES=multi .team-venv/bin/python heat_models.py
