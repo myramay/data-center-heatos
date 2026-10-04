@@ -52,12 +52,13 @@ function LiveTab() {
 
 const TEAM_PAGES = [
   { href: "/team/offer.html", label: "Heat offer", hint: "price per unit of heat vs today" },
-  { href: "/team/index.html", label: "Build plan", hint: "the team's phased plan" },
+  { href: "/team/index.html", label: "Build plan", hint: "the team's map; click a building for its offer" },
   { href: "/team/proposal.html", label: "System proposal", hint: "the team's written proposal" },
 ];
 
 function AnalysisTab() {
   const site = useStore((s) => s.site);
+  const firstOffer = useBundle()?.team?.chosen?.[0]?.id?.split("-")[1];       // team plan's first customer (BBL)
   const view = useStore((s) => s.view);
   const setView = useStore((s) => s.setView);
   const open = (id: Exclude<View, null>) => setView(view === id ? null : id);
@@ -83,7 +84,8 @@ function AnalysisTab() {
       <div className="label px-1 pt-4 pb-2">Team pages</div>
       <div className="flex flex-col gap-1.5">
         {TEAM_PAGES.map((t) => (
-          <a key={t.href} href={t.href + (site === "lansing" ? "?site=lansing" : "")} target="_blank" rel="noreferrer"
+          <a key={t.href} href={t.href + `?site=${site}` + (t.href.endsWith("offer.html") && firstOffer ? `&bbl=${firstOffer}` : "")}
+             target="_blank" rel="noreferrer"
              className="flex items-center justify-between px-2.5 py-2 rounded-lg text-[12px] border border-line text-ink-2 hover:bg-white/5">
             <span><span className="text-ink">{t.label}</span> <span className="text-ink-3">· {t.hint}</span></span><span aria-hidden>↗</span>
           </a>
