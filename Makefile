@@ -1,6 +1,6 @@
 PY := .venv/bin/python
 
-.PHONY: setup test dev demo api web record
+.PHONY: setup test dev demo api web record ml-data ml-models
 
 setup:
 	uv python install 3.11
@@ -28,3 +28,12 @@ demo:
 
 record:
 	$(PY) -m scripts.record
+
+# public datasets for the team ML pipeline (~1 GB into heat-reuse-data/data, git-ignored)
+ml-data:
+	$(PY) -m scripts.fetch_ml_data
+
+# retrain the team's demand / supply models (needs .team-venv: Python 3.14 + requirements.txt)
+ml-models:
+	.team-venv/bin/python combine_site1.py
+	.team-venv/bin/python heat_models.py

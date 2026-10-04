@@ -1,6 +1,13 @@
 # ml/ — ML team integration guide (Rachel, Annie)
 
-HeatOS runs today on mock providers (`engine/mocks.py`). Your modules replace
+**Status:** buildings (`ml/team_data.py`), weather, demand and supply
+(`ml/team_ml.py`, from `heat_models.py` outputs) are real; confidence is the
+engine's Monte Carlo; Jev is OpenJev. `HEATOS_ML=mock` / `HEATOS_BUILDINGS=mock`
+switch back to synthetic (tests do). Rebuild the data with `make ml-data`, retrain
+with `make ml-models`. `HEATOS_SUPPLY_SCALE=team` uses the team's supply magnitude
+instead of the site config capacity.
+
+Mock providers live in `engine/mocks.py`. Your modules replace
 them one at a time. **The only engine file you edit is `engine/providers.py`**
 (the `REGISTRY` block). Search the repo for `ML_TEAM_INTEGRATION` to see
 every hook.

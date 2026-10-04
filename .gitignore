@@ -11,3 +11,12 @@ web/dist/
 .env
 heat-reuse-data/
 .team-venv/
+cache/
+# team model outputs: keep only what ml/team_ml.py reads (the rest is large and regenerable)
+outputs/*
+!outputs/models/
+outputs/models/*
+!outputs/models/site*_demand_shapes.npz
+!outputs/models/site*_demand_hourly_typical_year.csv
+!outputs/models/site*_supply_hourly_typical_year.csv
+!outputs/models/demand_model_validation.txt

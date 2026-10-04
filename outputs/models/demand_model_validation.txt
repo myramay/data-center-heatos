@@ -1,0 +1,7 @@
+Held-out 20% of days (NYC + NY state)      space  hourly R2=0.944  daily R2=0.963  MAE=0.156  P10-P90 coverage=74%
+Held-out 20% of days (NYC + NY state)      dhw    hourly R2=0.945  daily R2=0.957  MAE=0.078  P10-P90 coverage=80%
+Unseen colder climate: Tompkins ComStock   space  hourly R2=0.783  daily R2=0.820  MAE=0.508  P10-P90 coverage=46%
+Unseen colder climate: Tompkins ComStock   dhw    hourly R2=0.820  daily R2=0.673  MAE=0.198  P10-P90 coverage=52%
+Conformal widening (share of P50 added to each side): space 0.03, dhw 0.00
+Google trace model, leave-one-cluster-out over 10 clusters: MAE 0.038 of mean load, P10-P90 coverage 67%
+Real data-center power (57 domains): hourly load P10-P90 = 0.93-1.06 x mean, typical daily swing 11.7%, 99th-pct hour-to-hour ramp 7.0%; production share 0.75-0.94 across domains

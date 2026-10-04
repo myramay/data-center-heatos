@@ -121,10 +121,8 @@ class MockWeatherProvider:
                     scenario: WeatherScenario = "typical") -> WeatherSeries:
         idx = hour_index(site, start, hours)
         c = CLIMATES[load_site(site).site.climate]
-        doy = idx.dayofyear.to_numpy() + idx.hour.to_numpy() / 24
         diurnal = c.diurnal_c * np.cos(2 * np.pi * (idx.hour.to_numpy() - 15) / 24)
-        t = (c.mean_c - c.amp_c * np.cos(2 * np.pi * (doy - c.coldest_doy) / 365.25)
-             + diurnal + _weather_noise(load_site(site).site.climate)[_epoch_hours(idx)])
+        t = self.base_t(site, idx)
 
         if scenario == "cold_year":
             t = t - 2.0
@@ -140,6 +138,14 @@ class MockWeatherProvider:
 
         return WeatherSeries(hours=list(idx.to_pydatetime()), t_out_c=np.round(t, 2).tolist(),
                              scenario=scenario)
+
+    def base_t(self, site: SiteId, idx: pd.DatetimeIndex) -> np.ndarray:
+        """Outdoor temperature before any stress scenario is applied."""
+        c = CLIMATES[load_site(site).site.climate]
+        doy = idx.dayofyear.to_numpy() + idx.hour.to_numpy() / 24
+        diurnal = c.diurnal_c * np.cos(2 * np.pi * (idx.hour.to_numpy() - 15) / 24)
+        return (c.mean_c - c.amp_c * np.cos(2 * np.pi * (doy - c.coldest_doy) / 365.25)
+                + diurnal + _weather_noise(load_site(site).site.climate)[_epoch_hours(idx)])
 
     def model_card(self) -> ModelCard:
         return ModelCard(

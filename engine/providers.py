@@ -90,9 +90,25 @@ def _buildings() -> BuildingProvider:
 
 
 BUILDINGS: BuildingProvider = _buildings()
-WEATHER: WeatherProvider = mocks.MockWeatherProvider()
-DEMAND: DemandProvider = mocks.MockDemandProvider(buildings=BUILDINGS, weather=WEATHER)
-SUPPLY: SupplyProvider = mocks.MockSupplyProvider()
+
+
+# Weather / demand / supply: the team's trained models (outputs/models + NOAA) when present; HEATOS_ML=mock for synthetic.
+def _team_ml() -> bool:
+    if os.environ.get("HEATOS_ML", "team") != "team":
+        return False
+    from ml import team_ml
+    return team_ml.available()
+
+
+if _team_ml():
+    from ml import team_ml
+    WEATHER: WeatherProvider = team_ml.TeamWeatherProvider()
+    DEMAND: DemandProvider = team_ml.TeamDemandProvider(buildings=BUILDINGS, weather=WEATHER)
+    SUPPLY: SupplyProvider = team_ml.TeamSupplyProvider()
+else:
+    WEATHER = mocks.MockWeatherProvider()
+    DEMAND = mocks.MockDemandProvider(buildings=BUILDINGS, weather=WEATHER)
+    SUPPLY = mocks.MockSupplyProvider()
 # Engine-owned (real physics + ledger), not an ML provider.
 SIMULATOR: FutureSimulator = EngineFutureSimulator()
 CONFIDENCE: ConfidenceProvider = mocks.MockConfidenceProvider(simulator=SIMULATOR)
