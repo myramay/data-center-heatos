@@ -4,7 +4,8 @@ import { Html } from "@react-three/drei";
 import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { useBundle, useStore } from "../store";
-import { DC_BOX, GRID_ROT_DEG, HEIGHT_EXAG, SITE_SCALE, footprint, gridToEN, enToWorld, useCityGeo } from "./geom";
+import { DC_BOX, GRID_ROT_DEG, HEIGHT_EXAG, PLATE, SITE_SCALE, footprint, gridToEN, enToWorld, useCityGeo } from "./geom";
+import { MAT } from "./Model";
 import { OPTION_LABEL, mw, thermal } from "../lib/format";
 import type { Building, SiteId } from "../types";
 
@@ -13,8 +14,8 @@ interface Osm { buildings: OsmBuilding[] }
 
 // Bright-scene status colours: only HeatOS candidate buildings carry colour.
 export const STATUS = {
-  network: "#ff7a1a", storage: "#f7b500", mixed: "#ff4d2e", backup: "#e5262b",
-  candidate: "#7f97b8", plain: "#f2f4f7",
+  network: "#ff7a1a", storage: "#f2b400", mixed: "#ff4d2e", backup: "#e5262b",
+  candidate: "#8b95a3", plain: "#e0ded4",
 } as const;
 
 const osmCache = new Map<SiteId, Promise<Osm | null>>();
@@ -29,13 +30,24 @@ function centroid(p: [number, number][]): [number, number] {
   return [x / p.length, y / p.length];
 }
 
-function extrude(site: SiteId, p: [number, number][], h: number): THREE.BufferGeometry | null {
+function extrude(site: SiteId, p: [number, number][], h: number, bevel = 0): THREE.BufferGeometry | null {
   if (p.length < 3) return null;
   const s = SITE_SCALE[site];
   const shape = new THREE.Shape(p.map(([e, n]) => new THREE.Vector2(e * s, n * s)));
-  const g = new THREE.ExtrudeGeometry(shape, { depth: h * s * HEIGHT_EXAG[site], bevelEnabled: false, curveSegments: 1 });
+  const depth = h * s * HEIGHT_EXAG[site];
+  const b = Math.min(bevel, depth * 0.2);
+  const g = new THREE.ExtrudeGeometry(shape, {
+    depth: Math.max(depth - b * 2, 0.5), curveSegments: 1,
+    bevelEnabled: b > 0, bevelThickness: b, bevelSize: b * 0.6, bevelSegments: 1,
+  });
+  g.translate(0, 0, b);
   g.rotateX(-Math.PI / 2);
   return g;
+}
+
+function onPlate(site: SiteId, x: number, z: number, margin = 0) {
+  const P = PLATE[site];
+  return Math.abs(x - P.cx) < P.half - margin && Math.abs(z - P.cz) < P.half - margin;
 }
 
 /** Matches each candidate to the nearest real footprint (within a radius) so the scene shows real buildings. */
@@ -87,7 +99,9 @@ export function City() {
       const gx = e * Math.cos(r) - n * Math.sin(r), gy = e * Math.sin(r) + n * Math.cos(r);
       if (site === "chelsea" && Math.abs(gx) < dc.w / 2 && Math.abs(gy) < dc.d / 2 + 6) continue;
       if (site === "lansing" && Math.hypot(e, n) < 90) continue;
-      const g = extrude(site, b.p, b.h);
+      const [wx, , wz] = enToWorld(site, e, n);
+      if (!onPlate(site, wx, wz, 12)) continue;
+      const g = extrude(site, b.p, b.h, site === "chelsea" ? 0.9 : 0.5);
       if (g) geos.push(g);
     }
     if (!geos.length) return null;
@@ -117,9 +131,7 @@ export function City() {
   return (
     <group>
       {context && (
-        <mesh geometry={context} castShadow receiveShadow raycast={() => null}>
-          <meshStandardMaterial color={STATUS.plain} roughness={0.85} metalness={0.02} />
-        </mesh>
+        <mesh geometry={context} castShadow receiveShadow raycast={() => null} material={MAT.ivory} />
       )}
       {candidates.map((b) => <Candidate key={`${site}-${b.id}`} b={b} osm={matched.get(b.id) ?? null} />)}
       <HoverLabel buildings={candidates} />
@@ -140,7 +152,7 @@ function Candidate({ b, osm }: { b: Building; osm: OsmBuilding | null }) {
   useEffect(() => { riseStart.current = performance.now(); }, [site]);
 
   const geometry = useMemo(() => {
-    if (osm) return extrude(site, osm.p, Math.max(osm.h, 6));
+    if (osm) return extrude(site, osm.p, Math.max(osm.h, 6), site === "chelsea" ? 1.6 : 0.8);
     const f = footprint(site, b);
     const [x, , z] = enToWorld(site, ...gridToEN(site, b.x_m, b.y_m));
     const g = new THREE.BoxGeometry(f.w, f.h, f.d);
@@ -166,15 +178,19 @@ function Candidate({ b, osm }: { b: Building; osm: OsmBuilding | null }) {
     group.current.scale.y = Math.max(0.001, 1 - Math.pow(1 - k, 3));
     const selected = s.selected === b.id || s.hovered === b.id;
     let emissive = 0;
+    mat.current.metalness = 0.5;
+    mat.current.roughness = 0.28;
     if (s.step === "analyze") {
       thermal(0.05 + 0.95 * heatRank, tmp);
-      emissive = 0.25;
+      emissive = 0.2;
     } else if (!connected) {
       tmp.set(STATUS.candidate);
+      mat.current.metalness = 0.72;
+      mat.current.roughness = 0.3;
     } else {
       const mode = s.frame?.buildings.find((x) => x.id === b.id)?.mode ?? "network";
       tmp.set(mode === "storage" ? STATUS.storage : mode === "backup" ? STATUS.backup : mode === "mixed" ? STATUS.mixed : STATUS.network);
-      emissive = mode === "backup" || mode === "mixed" ? 0.35 + 0.45 * (0.5 + 0.5 * Math.sin(t * 6)) : 0.3;
+      emissive = mode === "backup" || mode === "mixed" ? 0.3 + 0.5 * (0.5 + 0.5 * Math.sin(t * 6)) : 0.18;
     }
     mat.current.color.copy(tmp);
     mat.current.emissive.copy(tmp);
@@ -187,7 +203,7 @@ function Candidate({ b, osm }: { b: Building; osm: OsmBuilding | null }) {
   return (
     <group ref={group}>
       <mesh geometry={geometry} castShadow receiveShadow onPointerOver={onOver} onPointerOut={() => hover(null)} onClick={onClick}>
-        <meshStandardMaterial ref={mat} roughness={0.55} metalness={0.05} />
+        <meshStandardMaterial ref={mat} roughness={0.28} metalness={0.5} />
       </mesh>
     </group>
   );

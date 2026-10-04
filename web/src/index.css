@@ -25,7 +25,7 @@
   --color-critical: #d03b3b;
 }
 
-:root { color-scheme: dark; }
+:root { color-scheme: dark; --lw: clamp(236px, 19vw, 312px); --rw: clamp(290px, 23vw, 364px); }
 html, body, #root { height: 100%; margin: 0; background: var(--color-void); color: var(--color-ink); overflow: hidden; }
 body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
 .num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }

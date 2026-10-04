@@ -7,9 +7,10 @@ import * as THREE from "three";
 import type { OrbitControls as OrbitImpl } from "three-stdlib";
 import { useBundle, useStore } from "../store";
 import { City } from "./City";
-import { MapGround } from "./MapGround";
+import { Terrain } from "./Terrain";
+import { Floor, Plate, StudioLights } from "./Model";
 import { DataCenter, Pipes, Storage } from "./Network";
-import { Atmosphere, Ground, Snow } from "./World";
+import { Atmosphere, Snow } from "./World";
 import { CAMERA_HOME, placedOf } from "./geom";
 
 const SHOW_FPS = new URLSearchParams(window.location.search).has("fps");
@@ -82,20 +83,8 @@ function CameraRig() {
 
   return (
     <OrbitControls ref={controls} makeDefault enableDamping dampingFactor={0.08} autoRotateSpeed={0.35}
-                   maxPolarAngle={Math.PI * 0.47} minDistance={60} maxDistance={3200}
+                   maxPolarAngle={Math.PI * 0.475} minDistance={60} maxDistance={16000}
                    onStart={() => { lastInput.current = performance.now(); fly.current = null; }} />
-  );
-}
-
-function Lights() {
-  const site = useStore((s) => s.site);
-  return (
-    <>
-      <ambientLight intensity={0.35} />
-      <directionalLight position={[-700, 1100, 450]} intensity={2.3} color="#fff6e8" castShadow
-                        shadow-mapSize={[2048, 2048]} shadow-camera-left={-1400} shadow-camera-right={1400}
-                        shadow-camera-top={1400} shadow-camera-bottom={-1400} shadow-camera-far={3000} shadow-bias={-0.0005} key={site} />
-    </>
   );
 }
 
@@ -104,10 +93,10 @@ function Effects() {
   const offset = useMemo(() => new THREE.Vector2(0.0018, 0.0012), []);
   return (
     <EffectComposer multisampling={0}>
-      <Bloom mipmapBlur intensity={0.9} luminanceThreshold={0.92} luminanceSmoothing={0.15} radius={0.6} />
+      <Bloom mipmapBlur intensity={0.45} luminanceThreshold={1.4} luminanceSmoothing={0.1} radius={0.5} />
       <ChromaticAberration offset={heat ? offset : new THREE.Vector2(0, 0)} radialModulation={false} modulationOffset={0} />
       <Noise premultiply blendFunction={BlendFunction.SOFT_LIGHT} opacity={0.06} />
-      <Vignette offset={0.3} darkness={0.45} />
+      <Vignette offset={0.32} darkness={0.32} />
     </EffectComposer>
   );
 }
@@ -115,14 +104,14 @@ function Effects() {
 export function Scene() {
   const select = useStore((s) => s.select);
   return (
-    <Canvas shadows dpr={[1, 1.75]} gl={{ antialias: false, powerPreference: "high-performance" }}
-            camera={{ position: CAMERA_HOME.chelsea.pos, fov: 36, near: 2, far: 9000 }}
+    <Canvas shadows dpr={[1, 1.75]} gl={{ antialias: false, alpha: true, powerPreference: "high-performance", logarithmicDepthBuffer: true }}
+            camera={{ position: CAMERA_HOME.chelsea.pos, fov: 36, near: 8, far: 60000 }}
             onPointerMissed={() => select(null)}>
-      <color attach="background" args={["#dfe7ef"]} />
       <Atmosphere />
-      <Lights />
-      <Ground />
-      <MapGround />
+      <StudioLights />
+      <Floor />
+      <Plate />
+      <Terrain />
       <City />
       <DataCenter />
       <Pipes />

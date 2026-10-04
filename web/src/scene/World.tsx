@@ -92,23 +92,22 @@ export function Atmosphere() {
   const fog = useRef<THREE.Fog>(null!);
   const hemi = useRef<THREE.HemisphereLight>(null!);
   const site = useStore((s) => s.site);
-  const cold = useMemo(() => new THREE.Color("#d6e2f0"), []);
-  const hot = useMemo(() => new THREE.Color("#f1e3cf"), []);
-  const base = useMemo(() => new THREE.Color("#dfe7ef"), []);
-  useFrame(({ scene }, dt) => {
+  const cold = useMemo(() => new THREE.Color("#dbe6f3"), []);
+  const hot = useMemo(() => new THREE.Color("#f3e6d3"), []);
+  const base = useMemo(() => new THREE.Color("#e6e8ec"), []);
+  useFrame((_, dt) => {
     const f = useStore.getState().frame;
     const isCold = !!f && (f.active_scenarios.some((a) => COLD.includes(a)) || f.weather.t_out_c < -8);
     const isHot = !!f && (f.active_scenarios.includes("heat_wave") || f.weather.t_out_c > 30);
     const target = isCold ? cold : isHot ? hot : base;
     fog.current.color.lerp(target, Math.min(1, dt * 1.5));
-    (scene.background as THREE.Color | null)?.lerp(target, Math.min(1, dt * 1.5));
     hemi.current.color.lerp(isCold ? new THREE.Color("#dbe8ff") : isHot ? new THREE.Color("#fff0dc") : new THREE.Color("#ffffff"), Math.min(1, dt * 1.5));
   });
-  const far = site === "chelsea" ? 4200 : 3600;
+  const far = site === "chelsea" ? 30000 : 16000;
   return (
     <>
-      <fog ref={fog} attach="fog" args={["#dfe7ef", 1400, far]} />
-      <hemisphereLight ref={hemi} args={["#ffffff", "#b9c3cf", 1.1]} />
+      <fog ref={fog} attach="fog" args={["#e6e8ec", far * 0.35, far]} />
+      <hemisphereLight ref={hemi} args={["#ffffff", "#b9c3cf", 0.35]} />
     </>
   );
 }

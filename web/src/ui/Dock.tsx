@@ -18,7 +18,7 @@ function StressToggles() {
   const active = useStore((s) => s.frame?.active_scenarios) ?? NONE;
   const [pressed, setPressed] = useState<string | null>(null);
   return (
-    <Panel title="Stress tests" className="w-[300px] shrink-0">
+    <Panel title="Stress tests" className="w-[clamp(236px,19vw,300px)] shrink-0">
       <div className="grid grid-cols-2 gap-2 px-3 pb-3">
         {bundle?.scenarios.map((sc, i) => {
           const on = active.includes(sc.name);
@@ -50,7 +50,7 @@ function EventTicker() {
   const events = useStore((s) => s.events);
   const list = [...events].reverse().slice(0, 30);
   return (
-    <Panel title="Event log" className="w-[330px] shrink-0">
+    <Panel title="Event log" className="w-[clamp(240px,21vw,330px)] shrink-0">
       <div className="overflow-y-auto scroll-thin px-3 pb-3 min-h-0 flex-1">
         <AnimatePresence initial={false}>
           {list.length === 0 && <div className="text-[11.5px] text-ink-3 px-1">Waiting for the network to start…</div>}

@@ -43,7 +43,7 @@ export function BuildingList() {
   const nConnected = bundle?.plan.items.filter((i) => i.connect).length ?? 0;
 
   return (
-    <Panel className="absolute left-3 top-[76px] bottom-[230px] w-[312px] z-20"
+    <Panel className="absolute left-3 top-[76px] bottom-[230px] w-[var(--lw)] z-20"
            title={<span>Buildings <span className="num text-ink-2 normal-case tracking-normal">{bundle?.buildings.length ?? 0}</span></span>}
            right={step !== "analyze" && <span className="num text-[11px] text-ink-2">{nConnected} connected</span>}>
       <div className="flex flex-wrap gap-1 px-4 pb-2">
@@ -84,7 +84,7 @@ export function BuildingList() {
 export function RightPanel() {
   const selected = useStore((s) => s.selected);
   return (
-    <div className="absolute right-3 top-[118px] bottom-[230px] w-[364px] z-20">
+    <div className="absolute right-3 top-[118px] bottom-[230px] w-[var(--rw)] z-20">
       <AnimatePresence mode="wait">
         {selected ? (
           <motion.div key="detail" className="h-full" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}>
@@ -153,6 +153,7 @@ function BuildingDetail({ id }: { id: string }) {
           <div className="mt-4">
             <div className="flex items-center justify-between">
               <div className="label">Why? decision path</div>
+              <button onClick={() => useStore.getState().setView("tree")} className="text-[10.5px] text-accent hover:underline">open as tree ↗</button>
               <span className="text-[10px] text-ink-3">{ex.agrees ? "tree agrees with plan" : "tree differs from plan"}</span>
             </div>
             <div className="mt-2 relative">

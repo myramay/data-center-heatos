@@ -4,6 +4,8 @@ import { Edges, Html } from "@react-three/drei";
 import * as THREE from "three";
 import { useBundle, useStore } from "../store";
 import { DC_BOX, GRID_ROT_DEG, SITE_SCALE, toWorld, useCityGeo } from "./geom";
+import { MAT } from "./Model";
+import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { tempToUnit, thermal } from "../lib/format";
 
 // ------------------------------------------------------------------ pipes
@@ -20,8 +22,8 @@ const flowFrag = /* glsl */ `
     float d = fract(vUv.x * uLen / 38.0 - uTime * uSpeed);
     float dash = smoothstep(0.0, 0.15, d) * (1.0 - smoothstep(0.45, 0.6, d));
     float rim = pow(abs(vUv.y - 0.5) * 2.0, 2.0);
-    vec3 c = uColor * (0.75 + uGlow * dash) + uColor * rim * 0.2;
-    gl_FragColor = vec4(c, 1.0);
+    vec3 c = uColor * (0.6 + uGlow * dash);
+    gl_FragColor = vec4(c, dash * 0.95);
   }
 `;
 
@@ -31,7 +33,13 @@ function Pipe({ points, length }: { points: THREE.Vector3[]; length: number }) {
     const path = new THREE.CurvePath<THREE.Vector3>();
     for (let i = 1; i < points.length; i++) path.add(new THREE.LineCurve3(points[i - 1], points[i]));
     const site = useStore.getState().site;
-    return new THREE.TubeGeometry(path, Math.max(8, points.length * 24), site === "chelsea" ? 5.5 : 3.6, 10, false);
+    return new THREE.TubeGeometry(path, Math.max(8, points.length * 24), site === "chelsea" ? 6.2 : 4.0, 10, false);
+  }, [points]);
+  const copper = useMemo(() => {
+    const path = new THREE.CurvePath<THREE.Vector3>();
+    for (let i = 1; i < points.length; i++) path.add(new THREE.LineCurve3(points[i - 1], points[i]));
+    const site = useStore.getState().site;
+    return new THREE.TubeGeometry(path, Math.max(8, points.length * 24), site === "chelsea" ? 4.6 : 3.0, 12, false);
   }, [points]);
   const uniforms = useMemo(() => ({
     uTime: { value: 0 }, uSpeed: { value: 1 }, uLen: { value: length }, uDraw: { value: 0 },
@@ -52,9 +60,13 @@ function Pipe({ points, length }: { points: THREE.Vector3[]; length: number }) {
     (u.uColor.value as THREE.Color).lerp(tmp, Math.min(1, dt * 3));
   });
   return (
-    <mesh geometry={geometry} raycast={() => null}>
-      <shaderMaterial ref={mat} vertexShader={flowVert} fragmentShader={flowFrag} uniforms={uniforms} toneMapped={false} />
-    </mesh>
+    <group>
+      <mesh geometry={copper} material={MAT.copper} castShadow raycast={() => null} />
+      <mesh geometry={geometry} raycast={() => null}>
+        <shaderMaterial ref={mat} vertexShader={flowVert} fragmentShader={flowFrag} uniforms={uniforms} toneMapped={false}
+                        transparent depthWrite={false} blending={THREE.AdditiveBlending} />
+      </mesh>
+    </group>
   );
 }
 
@@ -101,14 +113,10 @@ export function DataCenter() {
   });
   return (
     <group rotation={[0, -(GRID_ROT_DEG[site] * Math.PI) / 180, 0]}>
-      <mesh position={[0, box.h / 2, 0]} castShadow receiveShadow>
-        <boxGeometry args={[box.w, box.h, box.d]} />
-        <meshStandardMaterial color="#3b4458" roughness={0.45} metalness={0.35} />
-        <Edges color="#ff9a52" threshold={15} />
-      </mesh>
-      {/* heat-exchanger roof band: glows with the heat the network takes */}
-      <mesh position={[0, box.h + 1.2, 0]} raycast={() => null}>
-        <boxGeometry args={[box.w * 0.9, 2.4, box.d * 0.7]} />
+      <DcModule box={box} />
+      {/* heat-exchanger band: glows with the heat the network takes */}
+      <mesh position={[0, box.h * 0.84, box.d / 2 + 0.6]} raycast={() => null}>
+        <boxGeometry args={[box.w * 0.94, box.h * 0.035, 1.2]} />
         <meshBasicMaterial ref={core} toneMapped={false} />
       </mesh>
       <pointLight ref={halo} position={[0, box.h + 30, 0]} color="#ff9a52" distance={site === "chelsea" ? 700 : 300} decay={1.6} />
@@ -116,6 +124,40 @@ export function DataCenter() {
         <DcLabel name={bundle?.config.data_center.name ?? ""} />
       </Html>
       {site === "lansing" && bundle?.config.data_center.compute_follows_heat && <FlexRing radius={box.w * 0.95} />}
+    </group>
+  );
+}
+
+/** The data center as a machined module: dark metal body, ivory upper deck, amber band, chrome vents. */
+function DcModule({ box }: { box: { w: number; h: number; d: number } }) {
+  const g = useMemo(() => ({
+    body: new RoundedBoxGeometry(box.w, box.h * 0.72, box.d, 3, Math.min(box.d, box.w) * 0.06),
+    deck: new RoundedBoxGeometry(box.w * 0.96, box.h * 0.2, box.d * 0.9, 2, box.d * 0.05),
+    band: new RoundedBoxGeometry(box.w * 0.98, box.h * 0.07, box.d * 0.96, 2, box.d * 0.02),
+  }), [box]);
+  const vents = useMemo(() => {
+    const out: [number, number][] = [];
+    const nx = Math.max(3, Math.round(box.w / (box.d * 0.55)));
+    for (let i = 0; i < nx; i++) for (const z of [-0.22, 0.22]) out.push([(-0.42 + (0.84 * i) / Math.max(nx - 1, 1)) * box.w, z * box.d]);
+    return out;
+  }, [box]);
+  const r = Math.min(box.d * 0.1, 7);
+  return (
+    <group>
+      <mesh geometry={g.body} material={MAT.body} position={[0, box.h * 0.36, 0]} castShadow receiveShadow />
+      <mesh geometry={g.band} material={MAT.copper} position={[0, box.h * 0.74, 0]} castShadow />
+      <mesh geometry={g.deck} material={MAT.ivory} position={[0, box.h * 0.86, 0]} castShadow receiveShadow />
+      {vents.map(([x, z], i) => (
+        <group key={i} position={[x, box.h * 0.96, z]}>
+          <mesh material={MAT.chrome} castShadow><cylinderGeometry args={[r, r, r * 1.2, 20]} /></mesh>
+          <mesh material={MAT.dark} position={[0, r * 0.62, 0]}><cylinderGeometry args={[r * 0.72, r * 0.72, 0.4, 20]} /></mesh>
+        </group>
+      ))}
+      {[-0.5, 0.5].map((sx) => (
+        <mesh key={sx} material={MAT.dark} position={[sx * box.w * 0.98, box.h * 0.36, 0]}>
+          <boxGeometry args={[0.8, box.h * 0.6, box.d * 0.7]} />
+        </mesh>
+      ))}
     </group>
   );
 }
@@ -188,20 +230,21 @@ function BoreholesAndTanks() {
       </instancedMesh>
       <mesh position={[-82, 38, 160]} raycast={() => null}>
         <boxGeometry args={[220, 80, 110]} />
-        <meshBasicMaterial color="#22d3ee" transparent opacity={0.07} depthWrite={false} />
-        <Edges color="#0e7490" />
+        <meshStandardMaterial color="#81949e" metalness={0.45} roughness={0.16} transparent opacity={0.16} depthWrite={false} />
+        <Edges color="#5b6b77" />
       </mesh>
       <group position={[200, 0, 95]}>
         {[-22, 22].map((dx) => (
-          <mesh key={dx} position={[dx, 17, 0]} castShadow>
-            <cylinderGeometry args={[14, 14, 34, 32]} />
-            <meshStandardMaterial color="#0f1730" transparent opacity={0.45} metalness={0.6} roughness={0.3} />
-          </mesh>
+          <group key={dx}>
+            <mesh position={[dx, 17, 0]} castShadow material={MAT.glass}><cylinderGeometry args={[14, 14, 34, 32]} /></mesh>
+            {[1, 33].map((y) => <mesh key={y} position={[dx, y, 0]} material={MAT.chrome}><cylinderGeometry args={[14.6, 14.6, 2, 32]} /></mesh>)}
+            {[12, 22].map((y) => <mesh key={y} position={[dx, y, 0]} material={MAT.copper}><torusGeometry args={[14.3, 0.7, 6, 32]} /></mesh>)}
+          </group>
         ))}
         {[-22, 22].map((dx) => <TankFill key={dx} dx={dx} />)}
       </group>
       <Html position={[-82, 84, 160]} center style={{ pointerEvents: "none" }} zIndexRange={[5, 0]}>
-        <div className="label whitespace-nowrap px-1.5 py-0.5 rounded" style={{ color: "#0e7490", background: "rgb(255 255 255 / 0.7)" }}>Borehole storage (shown above ground)</div>
+        <div className="whitespace-nowrap px-1.5 py-0.5 rounded text-[9.5px] font-semibold tracking-wider uppercase" style={{ color: "#0e7490", background: "rgb(255 255 255 / 0.7)" }}>Borehole storage</div>
       </Html>
     </group>
   );

@@ -7,12 +7,13 @@ import { useBundle, useStore, type View } from "../store";
 import { Bar, Chip, Panel, Sparkline } from "./bits";
 import { num, partyColor, pct, usd } from "../lib/format";
 import { API } from "../lib/data";
+import { CompareView, PhysicsView, WhyTreeDiagram } from "./Views2";
 import type { MoneyLink, TreeNode } from "../frame";
 
 const NO_ROWS: never[] = [];
 const TITLES: Record<Exclude<View, null>, string> = {
-  money: "Who pays whom", guarantees: "Heat guarantees", impact: "Sustainability impact",
-  framework: "Decision framework: Chelsea vs Lansing", tree: "Full decision tree", report: "Report: five deliverables",
+  physics: "Network physics (live)", compare: "Is this the best deal for everyone?", money: "Who pays whom", guarantees: "Heat guarantees", impact: "Sustainability impact",
+  framework: "Decision framework: Chelsea vs Lansing", tree: "Why? decision tree", report: "Report: five deliverables",
 };
 
 export function Views() {
@@ -21,11 +22,13 @@ export function Views() {
   return (
     <AnimatePresence>
       {view && (
-        <motion.div key={view} className="absolute right-3 top-[118px] bottom-[230px] w-[min(760px,calc(100vw-360px))] z-40"
+        <motion.div key={view} className="absolute right-3 top-[118px] bottom-[230px] w-[min(780px,calc(100vw-var(--lw)-40px))] z-40"
                     initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 40 }} transition={{ type: "spring", damping: 26, stiffness: 260 }}>
           <Panel className="h-full" title={TITLES[view]}
                  right={<button onClick={() => setView(null)} className="text-ink-3 hover:text-ink text-[13px]" aria-label="Close">✕</button>}>
             <div className="px-4 pb-4 overflow-y-auto scroll-thin min-h-0 flex-1">
+              {view === "physics" && <PhysicsView />}
+              {view === "compare" && <CompareView />}
               {view === "money" && <MoneyView />}
               {view === "guarantees" && <GuaranteesView />}
               {view === "impact" && <ImpactView />}
@@ -376,10 +379,27 @@ function TreeBranch({ node, depth, highlight, edge }: { node: TreeNode; depth: n
 function TreeView() {
   const bundle = useBundle();
   const selected = useStore((s) => s.selected);
+  const select = useStore((s) => s.select);
   if (!bundle) return null;
   const path = new Set(selected ? bundle.explanations[selected]?.path.map((n) => n.id) ?? [] : []);
+  const ex = selected ? bundle.explanations[selected] : null;
+  const name = (id: string) => bundle.buildings.find((b) => b.id === id)?.name ?? id;
   return (
     <div>
+      <div className="flex flex-wrap items-center gap-1.5 mb-3">
+        <span className="label mr-1">Building</span>
+        {bundle.buildings.slice().sort((a, b) => Number(!!bundle.plan.items.find((i) => i.building_id === b.id)?.connect) < Number(!!bundle.plan.items.find((i) => i.building_id === a.id)?.connect) ? -1 : 1)
+          .slice(0, 14).map((b) => (
+          <button key={b.id} onClick={() => select(b.id)} className={`px-2 py-0.5 rounded text-[10.5px] border ${selected === b.id ? "border-accent text-ink bg-accent/10" : "border-line text-ink-3 hover:text-ink-2"}`}>{b.name.split(",")[0]}</button>
+        ))}
+      </div>
+      {ex ? (
+        <div className="mb-5">
+          <div className="text-[13px] font-semibold mb-2">Why {name(ex.building_id)}?</div>
+          <WhyTreeDiagram ex={ex} root={bundle.tree.root} />
+        </div>
+      ) : <div className="text-[12px] text-ink-3 mb-4">Pick a building above, or click one in the 3D view, to see its path through the tree.</div>}
+      <div className="label mb-1">Full tree</div>
       <div className="text-[12px] text-ink-2 mb-2">
         Trained on {num(bundle.tree.n_samples)} synthetic building variants labelled by the recommendation engine
         (agreement {pct(bundle.tree.train_accuracy)}). {selected ? <>Highlighted: path for <b className="text-ink">{selected}</b>.</> : "Select a building to highlight its path."}

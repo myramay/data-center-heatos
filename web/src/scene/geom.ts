@@ -44,9 +44,15 @@ export const DC_BOX: Record<SiteId, { w: number; d: number; h: number }> = {
   lansing: { w: 120 * 0.28 * 2.2, d: 120 * 0.28 * 1.6, h: 22 * 0.28 * 2.2 },
 };
 
+// The model plate each site sits on (world units): centre, half-size, thickness.
+export const PLATE: Record<SiteId, { cx: number; cz: number; half: number; thick: number }> = {
+  chelsea: { cx: -260, cz: -170, half: 1250, thick: 50 },
+  lansing: { cx: 360, cz: -150, half: 760, thick: 34 },
+};
+
 export const CAMERA_HOME: Record<SiteId, { pos: [number, number, number]; target: [number, number, number] }> = {
-  chelsea: { pos: [-520, 560, 520], target: [40, 0, -210] },
-  lansing: { pos: [-720, 640, 560], target: [380, 0, -360] },
+  chelsea: { pos: [-3300, 2350, 2700], target: [-150, -60, -700] },
+  lansing: { pos: [-1700, 1350, 1500], target: [250, -40, -250] },
 };
 
 // Where each candidate building is actually drawn (snapped to a real OSM footprint when one is close).

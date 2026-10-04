@@ -7,6 +7,7 @@ import { BuildingList, RightPanel } from "./ui/Sides";
 import { Dock } from "./ui/Dock";
 import { Views } from "./ui/Views";
 import { DemoController } from "./ui/Demo";
+import { Locator } from "./ui/Locator";
 
 /** Keeps the control room usable if WebGL is unavailable (old GPU, sandboxed browser). */
 class SceneBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
@@ -30,7 +31,7 @@ function Legend() {
     ? [["#3b2a8f", "low heat use"], ["#22d3ee", ""], ["#f5a524", ""], ["#ff3b3b", "high heat use"]]
     : [["#ff7a1a", "on network heat"], ["#f7b500", "drawing on storage"], ["#e5262b", "on backup boiler"], ["#7f97b8", "not connected"], ["#f2f4f7", "other buildings"]];
   return (
-    <div className="absolute left-[336px] bottom-[232px] z-10 flex items-center gap-3 px-3 py-1.5 glass" style={{ borderRadius: 10 }}>
+    <div className="absolute left-[calc(var(--lw)+24px)] bottom-[232px] z-10 flex items-center gap-3 px-3 py-1.5 glass" style={{ borderRadius: 10 }}>
       {items.map(([c, l], i) => (
         <span key={i} className="flex items-center gap-1.5 text-[10.5px] text-ink-2">
           <span className="w-2.5 h-2.5 rounded-sm" style={{ background: c, border: "1px solid rgb(255 255 255 / 0.25)" }} />{l}
@@ -50,7 +51,9 @@ export default function App() {
 
   return (
     <div className="relative w-full h-full">
-      <div className="absolute inset-0"><SceneBoundary><Scene /></SceneBoundary></div>
+      <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse at 50% 32%, #f7f6f2 0%, #e6e7ea 52%, #c9ccd2 100%)" }}>
+        <SceneBoundary><Scene /></SceneBoundary>
+      </div>
       <AnimatePresence>
         {!cinematic && (
           <motion.div key="ui" className="absolute inset-0 pointer-events-none [&>*]:pointer-events-auto" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
@@ -61,11 +64,12 @@ export default function App() {
             <Dock />
             <Views />
             <Legend />
+            <Locator />
           </motion.div>
         )}
       </AnimatePresence>
       <div className="absolute right-3 bottom-[222px] z-10 text-[9.5px] text-ink-3/90 px-1.5 py-0.5 rounded" style={{ background: "rgb(255 255 255 / 0.55)", color: "#4b5563" }}>
-        Map © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors © <a href="https://carto.com/attributions" target="_blank" rel="noreferrer">CARTO</a>
+        Geography: US Census Bureau · Buildings © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors
       </div>
       <DemoController />
       <AnimatePresence>

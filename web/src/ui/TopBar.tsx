@@ -17,7 +17,7 @@ function Clock() {
   const time = d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
   return (
     <div className="leading-tight">
-      <div className="num text-[15px] font-semibold">{time} <span className="text-ink-3 text-[11px] font-normal">{date}</span></div>
+      <div className="num text-[15px] font-semibold">{time} <span className="text-ink-3 text-[11px] font-normal hidden xl:inline">{date}</span></div>
       <div className="num text-[10.5px] text-ink-3">
         hour {f.hour_index + 1}/{f.hours_total} · {f.weather.t_out_c.toFixed(1)}°C outside
       </div>
@@ -29,10 +29,10 @@ export function ViewTabs() {
   const view = useStore((s) => s.view);
   const setView = useStore((s) => s.setView);
   return (
-    <div className="glass absolute right-3 top-[76px] h-[36px] w-[364px] z-30 flex items-center justify-between px-1.5" style={{ borderRadius: 10 }}>
+    <div className="glass absolute right-3 top-[76px] h-[36px] w-[max(var(--rw),520px)] z-30 flex items-center justify-between px-1 overflow-x-auto" style={{ borderRadius: 10 }}>
       {VIEWS.map((v) => (
         <button key={v.id} onClick={() => setView(view === v.id ? null : v.id)}
-                className={`px-2 py-1 rounded-md text-[11.5px] ${view === v.id ? "bg-white/12 text-ink" : "text-ink-3 hover:text-ink-2"}`}>{v.label}</button>
+                className={`px-1.5 py-1 rounded-md text-[11px] whitespace-nowrap ${view === v.id ? "bg-white/12 text-ink" : "text-ink-3 hover:text-ink-2"}`}>{v.label}</button>
       ))}
     </div>
   );
@@ -95,7 +95,7 @@ export function TopBar() {
             <button key={st.id} onClick={() => s.setStep(st.id)}
                     className={`flex items-center gap-1 px-1.5 py-1 rounded-md text-[11.5px] ${active ? "text-ink bg-white/10" : done ? "text-ink-2" : "text-ink-3 hover:text-ink-2"}`}>
               <span className={`num w-4 h-4 rounded-full grid place-items-center text-[9.5px] ${active ? "bg-accent text-void" : done ? "bg-white/25 text-void" : "border border-line"}`}>{i + 1}</span>
-              {st.label}
+              <span className={active ? "" : "hidden 2xl:inline"}>{st.label}</span>
             </button>
           );
         })}
